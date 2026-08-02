@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "echo 'no install needed'",
+  "buildCommand": "mkdir -p dist && cp unfired-kiln.html dist/index.html && cp unfired-kiln.html dist/unfired-kiln.html",
+  "outputDirectory": "dist"
+}

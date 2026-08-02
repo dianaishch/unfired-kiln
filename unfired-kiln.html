@@ -1,0 +1,1338 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UNFIRED — Kiln</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#17130F;
+    --brick:#2A211A;
+    --brick-2:#3A2E24;
+    --chalk:#E8E2D6;
+    --graphite:#6E655C;
+    --graphite-2:#4A423B;
+    --heat:#FF6A18;
+    --ember:#C2340C;
+    --disp:'Barlow Condensed','Oswald','Arial Narrow',sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--void);color:var(--chalk);
+    font-family:var(--mono);-webkit-font-smoothing:antialiased;overflow:hidden}
+  canvas{display:block;touch-action:none}
+  #stage{position:fixed;inset:0}
+
+  .rail{position:fixed;left:0;top:0;bottom:0;width:284px;padding:22px 20px;overflow-y:auto;
+    display:flex;flex-direction:column;gap:0;z-index:5;
+    background:linear-gradient(90deg,rgba(23,19,15,.94),rgba(23,19,15,.55));
+    border-right:1px solid var(--graphite-2)}
+  .mark{font-family:var(--disp);font-size:13px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--chalk);line-height:1}
+  .mark span{color:var(--graphite)}
+  .sub{font-size:9.5px;letter-spacing:.16em;color:var(--graphite);text-transform:uppercase;
+    margin-top:7px;line-height:1.6}
+  hr{border:0;border-top:1px solid var(--graphite-2);margin:16px 0 12px}
+
+  .lbl{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--graphite);
+    margin-bottom:9px;display:flex;justify-content:space-between}
+  .glazes{display:grid;grid-template-columns:1fr 1fr;gap:1px}
+  .gz{display:flex;align-items:center;gap:7px;padding:6px 6px;cursor:pointer;
+    background:none;border:1px solid transparent;color:var(--chalk);width:100%;text-align:left;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+  .gz:hover{background:rgba(232,226,214,.05)}
+  .gz[aria-pressed="true"]{border-color:var(--graphite);background:rgba(232,226,214,.07)}
+  .gz:disabled{opacity:.3;cursor:default}
+  .chip{width:13px;height:13px;flex:0 0 13px;border:1px solid rgba(0,0,0,.4)}
+    .forms{display:grid;grid-template-columns:1fr 1fr;gap:1px}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:1px}
+  .modes.three{grid-template-columns:1fr 1fr 1fr}
+  .sl{display:flex;align-items:center;gap:10px;margin-top:2px}
+  .sl label{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--graphite);
+    flex:0 0 78px}
+  .sl output{font-size:9px;color:var(--graphite);flex:0 0 24px;text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:1px;
+    background:var(--graphite-2);margin:12px 0;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:15px;
+    background:var(--chalk);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:9px;height:15px;background:var(--chalk);
+    border:0;border-radius:0;cursor:pointer}
+  input[type=range]:disabled{opacity:.35;cursor:default}
+  input[type=range]:disabled::-webkit-slider-thumb{background:var(--graphite-2)}
+  .clays{display:flex;gap:1px}
+  .cl{flex:1;padding:6px 0;cursor:pointer;background:none;border:1px solid transparent;
+    display:flex;justify-content:center}
+  .cl:hover{background:rgba(232,226,214,.05)}
+  .cl[aria-pressed="true"]{border-color:var(--graphite);background:rgba(232,226,214,.07)}
+  .cl:disabled{opacity:.3;cursor:default}
+  .cl span{width:19px;height:19px;display:block;border:1px solid rgba(0,0,0,.4)}
+
+  .segs{display:flex;gap:1px}
+  .seg{flex:1;padding:7px 0;background:none;border:1px solid var(--graphite-2);color:var(--graphite);
+    font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:.06em}
+  .seg[aria-pressed="true"]{color:var(--chalk);border-color:var(--graphite);background:rgba(232,226,214,.06)}
+  .seg:disabled{opacity:.35;cursor:default}
+
+  .act{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+  button.big{font-family:var(--disp);font-size:19px;letter-spacing:.3em;text-transform:uppercase;
+    padding:15px 0;background:var(--ember);color:#fff;border:0;cursor:pointer;transition:background .15s}
+  button.big:hover{background:var(--heat)}
+  button.big:disabled{background:var(--brick-2);color:var(--graphite-2);cursor:default}
+  button.ghost{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    padding:10px 0;background:none;border:1px solid var(--graphite-2);color:var(--graphite);cursor:pointer}
+  button.ghost:hover{color:var(--chalk);border-color:var(--graphite)}
+  .warn{font-size:9px;color:var(--graphite);letter-spacing:.1em;text-transform:uppercase;text-align:center}
+
+  /* kiln readout */
+  .readout{position:fixed;left:284px;right:0;bottom:0;padding:14px 26px;z-index:5;
+    border-top:1px solid var(--graphite-2);background:linear-gradient(0deg,rgba(23,19,15,.95),rgba(23,19,15,0));
+    display:flex;align-items:flex-end;gap:34px;pointer-events:none}
+  .temp{font-family:var(--disp);font-size:52px;line-height:.82;letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums}
+  .temp em{font-style:normal;font-size:16px;color:var(--graphite);letter-spacing:.1em;margin-left:5px}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:90px}
+  .field b{font-weight:500;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase}
+  .field i{font-style:normal;font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--graphite)}
+  .ramp{flex:1;height:2px;background:var(--brick-2);position:relative;margin-bottom:7px;min-width:80px}
+  .ramp b{position:absolute;left:0;top:0;bottom:0;background:var(--heat);width:0%}
+
+  /* log */
+  .log{position:fixed;right:26px;top:22px;width:250px;z-index:5;text-align:right;
+    font-size:10px;line-height:1.9;color:var(--graphite);pointer-events:none}
+  .log div{opacity:0;animation:in .4s forwards}
+  .log div b{color:var(--chalk);font-weight:400}
+  @keyframes in{to{opacity:1}}
+
+  /* result */
+  .result{position:fixed;right:26px;bottom:120px;width:290px;z-index:6;
+    border-top:1px solid var(--chalk);padding-top:12px;display:none}
+  .result.on{display:block;animation:in .5s forwards}
+  .result h2{font-family:var(--disp);font-size:34px;letter-spacing:.06em;text-transform:uppercase;
+    margin:0 0 6px;line-height:.95}
+  .result p{margin:0;font-size:11px;line-height:1.75;color:var(--chalk)}
+  .result .meta{margin-top:11px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite)}
+
+    .shelf{position:fixed;left:300px;bottom:104px;z-index:6;display:flex;gap:7px;align-items:flex-end}
+  .shelf button{padding:0;border:1px solid var(--graphite-2);background:none;cursor:pointer;line-height:0}
+  .shelf button:hover{border-color:var(--chalk)}
+  .shelf img{width:52px;height:66px;object-fit:cover;display:block}
+  .loadbar{position:fixed;left:300px;bottom:76px;z-index:6;width:214px}
+  .loadbar input{width:100%;background:none;border:1px solid var(--graphite-2);color:var(--graphite);
+    font-family:var(--mono);font-size:8.5px;padding:6px 7px;letter-spacing:.04em}
+  .loadbar input:focus{outline:none;border-color:var(--graphite);color:var(--chalk)}
+  .codebar{display:flex;gap:1px;margin-top:10px}
+  .codebar input{flex:1;min-width:0;background:none;border:1px solid var(--graphite-2);
+    color:var(--graphite);font-family:var(--mono);font-size:8.5px;padding:6px 7px;letter-spacing:.04em}
+  .codebar input:focus{outline:none;border-color:var(--graphite);color:var(--chalk)}
+  .codebar button{background:none;border:1px solid var(--graphite-2);color:var(--graphite);
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+    padding:6px 9px;cursor:pointer}
+  .codebar button:hover{color:var(--chalk);border-color:var(--graphite)}
+  .sheet{position:fixed;inset:0;z-index:20;background:rgba(9,7,6,.94);display:none;
+    align-items:center;justify-content:center;padding:28px}
+  .sheet.on{display:flex}
+  .sheetbox{display:flex;flex-direction:column;align-items:center;gap:12px;max-height:100%}
+  .sheetbox img{max-height:74vh;max-width:100%;border:1px solid var(--graphite-2)}
+  .sheetrow{display:flex;gap:8px}
+  .sheetrow a,.sheetrow button{font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;padding:9px 16px;background:none;border:1px solid var(--graphite-2);
+    color:var(--graphite);cursor:pointer;text-decoration:none}
+  .sheetrow a:hover,.sheetrow button:hover{color:var(--chalk);border-color:var(--graphite)}
+  .sheetnote{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--graphite-2)}
+  @media (max-width:820px){ .shelf,.loadbar{display:none} }
+  .telemetry{position:fixed;right:26px;bottom:14px;z-index:5;font-size:8.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--graphite-2);text-align:right;pointer-events:none}
+
+  .dev{position:fixed;left:284px;top:0;padding:10px 16px;z-index:5;display:flex;gap:14px;align-items:center;
+    font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite-2)}
+  .dev select{background:var(--brick);color:var(--graphite);border:1px solid var(--graphite-2);
+    font-family:var(--mono);font-size:9px;padding:3px 5px;letter-spacing:.1em}
+
+  @media (max-width:820px){
+    .rail{width:100%;height:auto;bottom:auto;flex-direction:column;border-right:0;
+      border-bottom:1px solid var(--graphite-2)}
+    .readout{left:0;gap:18px;flex-wrap:wrap}.temp{font-size:36px}
+    .log,.result,.dev,.telemetry{display:none}
+    .act{margin-top:16px}
+  }
+  @media (prefers-reduced-motion:reduce){.log div{animation:none;opacity:1}}
+</style>
+
+<div id="stage"></div>
+
+<aside class="rail">
+  <div class="mark">Unfired <span>/</span> Kiln</div>
+  <div class="sub">Sprint 2 — Turn to look,<br>Shape to work the wall.</div>
+
+  <hr>
+  <div class="lbl"><span>Form</span><span id="frmname">—</span></div>
+  <div class="forms" id="forms"></div>
+
+  <hr>
+  <div class="lbl"><span>Tool</span><span id="toolhint">drag on the pot</span></div>
+  <div class="modes three" id="tools"></div>
+  <div class="sl"><label>Brush</label><input type="range" id="brush" min="6" max="60" value="20"><output id="brushv">20</output></div>
+  <button class="ghost" id="undo" style="margin-top:6px">Undo</button>
+
+  <hr>
+  <div class="lbl"><span>Surface</span><span id="txname">—</span></div>
+  <div class="modes" id="modes"></div>
+  <div class="sl"><label>Depth</label><input type="range" id="amt" min="0" max="100" value="55"><output id="amtv">55</output></div>
+  <div class="sl"><label>Off-round</label><input type="range" id="asym" min="0" max="100" value="0"><output id="asymv">0</output></div>
+
+  <hr>
+  <div class="lbl"><span>Clay body</span><span id="clname">—</span></div>
+  <div class="clays" id="clays"></div>
+
+  <hr>
+  <div class="lbl"><span>Raw glaze</span><span id="gzstate">unfired</span></div>
+  <div class="glazes" id="glazes"></div>
+  <div class="sub" id="gzname" style="margin-top:8px"></div>
+
+  <hr>
+  <div class="lbl"><span>Firing length</span></div>
+  <div class="segs" id="durs"></div>
+  <div class="sub" style="margin-top:9px">The kiln keeps running if you<br>leave the tab. Come back for it.</div>
+
+  <div class="act">
+    <button class="big" id="fire">Fire</button>
+    <button class="ghost" id="save" style="display:none">Specimen sheet</button>
+    <button class="ghost" id="reset" style="display:none">New piece</button>
+    <div class="warn" id="oneway">Firing is one way</div>
+  </div>
+</aside>
+
+<div class="dev">
+  <span>force outcome</span>
+  <select id="force">
+    <option value="">roll</option>
+    <option value="clean">clean pull</option>
+    <option value="craze">crazing</option>
+    <option value="run">glaze run</option>
+    <option value="crawl">crawling</option>
+    <option value="pin">pinholing</option>
+    <option value="dunt">dunting</option>
+  </select>
+</div>
+
+<div class="log" id="log"></div>
+
+<div class="result" id="result">
+  <h2 id="rtitle"></h2>
+  <p id="rbody"></p>
+  <div class="meta" id="rmeta"></div>
+  <div class="codebar">
+    <input id="codev" readonly>
+    <button id="copycode">Copy</button>
+  </div>
+</div>
+
+<div class="readout">
+  <div class="temp"><span id="temp">20</span><em>°C</em></div>
+  <div class="field"><b id="stagev">Cold</b><i>Kiln stage</i></div>
+  <div class="field"><b id="conev">—</b><i>Cone</i></div>
+  <div class="field"><b id="wallv">—</b><i>Min wall</i></div>
+  <div class="field"><b id="riskv">—</b><i>Crack risk</i></div>
+  <div class="field"><b id="clockv">00:00</b><i>Elapsed</i></div>
+  <div class="ramp"><b id="rampbar"></b></div>
+</div>
+
+<div class="shelf" id="shelf"></div>
+<div class="loadbar"><input id="loadcode" placeholder="paste a piece code + enter"></div>
+
+<div class="sheet" id="sheet">
+  <div class="sheetbox">
+    <img id="sheetimg" alt="Specimen sheet">
+    <div class="sheetrow">
+      <a id="dl" download="unfired.png">Download</a>
+      <button id="copyimg">Copy image</button>
+      <button id="closesheet">Close</button>
+    </div>
+    <div class="sheetnote" id="sheetnote">Or right-click the image and save it</div>
+  </div>
+</div>
+
+<div class="telemetry" id="tele"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ------------------------------------------------------------------ *
+ * UNFIRED — Kiln.  Sprint 1: does the raw→fired reveal land?
+ * Fixed lathe form. Raw glaze → firing sequence → fired glaze + outcome.
+ * ------------------------------------------------------------------ */
+
+const CLAYS = [
+  { id:'porcelain', name:'Porcelain',       col:'#EAE4D8', speck:0.00 },
+  { id:'buff',      name:'Buff stoneware',  col:'#C6A87E', speck:0.14 },
+  { id:'speckled',  name:'Speckled buff',   col:'#BC9F76', speck:0.85 },
+  { id:'terra',     name:'Terracotta',      col:'#A6512F', speck:0.10 },
+  { id:'dark',      name:'Dark stoneware',  col:'#3E352E', speck:0.30 },
+];
+
+const GLAZES = [
+  { id:'tenmoku', name:'Tenmoku', hint:'iron black, rust rim',
+    raw:'#8C8378', fired:'#15110C', pool:'#080605', brk:'#A85A22',
+    gloss:1.00, speckle:.35, crazeBias:.7, crawlBias:.6, runBias:1.1 },
+  { id:'celadon', name:'Celadon', hint:'jade, crazes readily',
+    raw:'#D9CBC6', fired:'#7FA98C', pool:'#3C6B55', brk:'#C9B08C',
+    gloss:1.00, speckle:.10, crazeBias:2.2, crawlBias:.5, runBias:.8 },
+  { id:'oxblood', name:'Oxblood', hint:'copper red, reduction',
+    raw:'#A9B4A2', fired:'#6E0F14', pool:'#380508', brk:'#C97B4E',
+    gloss:1.00, speckle:.16, crazeBias:1.2, crawlBias:.7, runBias:1.3 },
+  { id:'shino',   name:'Shino',   hint:'warm cream, carbon trap',
+    raw:'#EDE7DA', fired:'#E3C193', pool:'#A9743C', brk:'#8A4A22',
+    gloss:0.42, speckle:.55, crazeBias:.5, crawlBias:2.4, runBias:.35 },
+  { id:'ash',     name:'Ash',     hint:'amber, runs hard',
+    raw:'#B7B2A4', fired:'#8C6A28', pool:'#463F14', brk:'#6E5230',
+    gloss:0.95, speckle:.30, crazeBias:1.1, crawlBias:.6, runBias:2.6 },
+  { id:'chun',    name:'Chun',    hint:'milky opalescent blue',
+    raw:'#C6C2B4', fired:'#6E8FB0', pool:'#33527A', brk:'#B79A78',
+    gloss:1.00, speckle:.12, crazeBias:1.6, crawlBias:.6, runBias:1.5 },
+  { id:'kaki',    name:'Kaki',    hint:'persimmon, iron saturate',
+    raw:'#9C8A76', fired:'#B4501C', pool:'#6A2408', brk:'#D08A4A',
+    gloss:0.80, speckle:.50, crazeBias:.6, crawlBias:.8, runBias:1.0 },
+  { id:'nuka',    name:'Nuka',    hint:'opaque rice-ash white',
+    raw:'#F0EBE2', fired:'#EFE6D2', pool:'#C6B48C', brk:'#9A7A50',
+    gloss:0.85, speckle:.18, crazeBias:.9, crawlBias:1.1, runBias:1.8 },
+  { id:'oribe',   name:'Oribe',   hint:'copper green',
+    raw:'#BFC4B0', fired:'#2F6B34', pool:'#123D18', brk:'#9C6A3C',
+    gloss:1.00, speckle:.14, crazeBias:1.3, crawlBias:.6, runBias:1.6 },
+  { id:'cobalt',  name:'Cobalt',  hint:'deep blue, even',
+    raw:'#C8C2C6', fired:'#1E3A78', pool:'#0B1A3E', brk:'#8E7A5E',
+    gloss:1.00, speckle:.10, crazeBias:.8, crawlBias:.5, runBias:.9 },
+  { id:'blackmat',name:'Black matt',hint:'dry surface, no gloss',
+    raw:'#8E8A84', fired:'#201E1C', pool:'#100F0E', brk:'#55483A',
+    gloss:0.16, speckle:.22, crazeBias:.4, crawlBias:1.4, runBias:.4 },
+  { id:'rutile',  name:'Rutile',  hint:'variegated blue-tan',
+    raw:'#CFC6B6', fired:'#52738C', pool:'#22435C', brk:'#C0A070',
+    gloss:0.95, speckle:.45, crazeBias:1.2, crawlBias:.7, runBias:1.4 },
+
+  /* spray blends — two glazes graded into each other up the wall */
+  { id:'ember',   name:'Ember',   hint:'spray blend, cream to red',
+    raw:'#E4DACA', fired:'#F1E7D3', fired2:'#C4201B', pool:'#B4531A', brk:'#D9A46A',
+    gloss:0.90, speckle:.06, crazeBias:.9, crawlBias:.5, runBias:1.0 },
+  { id:'iris',    name:'Iris',    hint:'spray blend, rose to violet',
+    raw:'#D3C8CE', fired:'#CE6685', fired2:'#2B3EA0', pool:'#46256E', brk:'#C79AA0',
+    gloss:0.95, speckle:.06, crazeBias:1.0, crawlBias:.5, runBias:1.0 },
+  { id:'tide',    name:'Tide',    hint:'spray blend, aqua to navy',
+    raw:'#C9CFCB', fired:'#84C9D8', fired2:'#101F4E', pool:'#0B1A38', brk:'#A8B6B4',
+    gloss:0.95, speckle:.08, crazeBias:1.1, crawlBias:.5, runBias:1.1 },
+];
+
+const TEXTURES = [
+  { id:'plain',  name:'Plain',  mode:0 },
+  { id:'rings',  name:'Rings',  mode:1 },
+  { id:'beads',  name:'Beads',  mode:2 },
+  { id:'thorns', name:'Thorns', mode:3 },
+];
+
+const OUTCOMES = {
+  clean:{ w:32, title:'Clean pull',  body:'No faults. The glaze sat where it was put and came out even — the rim broke to clay the way it should, the foot stayed dry.' },
+  craze:{ w:24, title:'Crazing',     body:'A fine crackle network right through the glaze. The glaze shrank more than the clay did on the way down. Cosmetic — some potters spend years chasing it deliberately.' },
+  run:{   w:16, title:'Glaze run',   body:'It moved. Thick and dark down the lower third where it pooled and stopped. Half a millimetre more and it would have welded to the shelf.' },
+  crawl:{ w:12, title:'Crawling',    body:'The glaze pulled back from the clay in patches and beaded up at the edges. Usually dust or oil on the raw pot before dipping.' },
+  pin:{   w:8,  title:'Pinholing',   body:'Small craters across the surface where gas escaped the clay body after the glaze had already sealed over. Cooled too fast at the top end.' },
+  dunt:{  w:8,  title:'Dunting',     body:'A cooling crack. It opened at the foot and ran up through the wall as the kiln passed back down through quartz inversion at 573°C.' },
+};
+
+const DURATIONS = [
+  { label:'12s', ms:12000, note:'prototype' },
+  { label:'45s', ms:45000, note:'spec' },
+  { label:'3m',  ms:180000, note:'stress' },
+];
+
+/* ---------------------------------------------------------------- scene */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, innerWidth/innerHeight, .1, 100);
+
+/* ------------------------------------------------------------- wall model
+   The pot is a wall, not a surface: a centreline radius per station plus a
+   thickness per station. Outer profile = r + t/2, inner = r - t/2. So wall
+   thickness is a real measured quantity, and pulling the wall outwards
+   stretches it thinner — irreversibly, the way clay does. */
+
+const NST = 34, T0 = 0.050, BASET = 0.115, MM = 105, SEGS = 176;
+
+const FORMS = [
+  { id:'bottle', name:'Bottle', h:1.90, cl:[[0,.52],[.05,.60],[.12,.70],[.28,.80],[.42,.845],[.55,.80],[.68,.66],[.79,.53],[.87,.45],[.94,.41],[1,.43]] },
+  { id:'cup',    name:'Cup',    h:1.00, cl:[[0,.44],[.06,.49],[.30,.51],[.62,.54],[.90,.58],[1,.60]] },
+  { id:'beaker', name:'Beaker', h:1.16, cl:[[0,.50],[.05,.525],[.35,.525],[.70,.525],[1,.525]] },
+  { id:'bowl',   name:'Bowl',   h:0.78, cl:[[0,.25],[.08,.33],[.22,.50],[.42,.70],[.65,.86],[.85,.93],[1,.95]] },
+  { id:'dish',   name:'Dish',   h:0.38, cl:[[0,.38],[.10,.50],[.30,.75],[.55,1.00],[.80,1.14],[1,1.20]] },
+  { id:'vase',   name:'Vase',   h:1.74, cl:[[0,.36],[.06,.40],[.16,.41],[.34,.375],[.55,.40],[.72,.50],[.88,.63],[1,.74]] },
+  { id:'jar',    name:'Jar',    h:1.36, cl:[[0,.42],[.05,.48],[.17,.60],[.37,.78],[.55,.81],[.73,.70],[.87,.52],[.95,.45],[1,.44]] },
+  { id:'bud',    name:'Bud vase',h:1.43,cl:[[0,.32],[.05,.37],[.20,.53],[.37,.57],[.55,.44],[.68,.30],[.80,.22],[.92,.21],[1,.235]] },
+];
+
+const W = { y:[], r:[], r0:[], t:[], h:1.9 };
+let YOFF = -0.95, YMIN = -0.95, YMAX = 0.95;
+
+function sampleCl(cl, yn){
+  if(yn <= cl[0][0]) return cl[0][1];
+  for(let i=0;i<cl.length-1;i++){
+    if(yn <= cl[i+1][0]){
+      const k = (yn-cl[i][0])/((cl[i+1][0]-cl[i][0])||1);
+      return cl[i][1] + (cl[i+1][1]-cl[i][1])*k;
+    }
+  }
+  return cl[cl.length-1][1];
+}
+function loadWall(f){
+  W.h = f.h; W.y = []; W.r = []; W.r0 = []; W.t = [];
+  for(let i=0;i<NST;i++){ W.y[i] = f.h*i/(NST-1); W.r[i] = sampleCl(f.cl, i/(NST-1)); }
+  for(let k=0;k<4;k++){
+    const c = W.r.slice();
+    for(let i=1;i<NST-1;i++) W.r[i] = c[i-1]*0.25 + c[i]*0.5 + c[i+1]*0.25;
+  }
+  for(let i=0;i<NST;i++){ W.r0[i] = W.r[i]; W.t[i] = T0; }
+  YOFF = -f.h/2; YMIN = YOFF; YMAX = f.h + 0.010 + YOFF;
+}
+
+/* thinness readout, 0 at a comfortable 4.2mm wall down to 1 at 0.8mm */
+function thin01(t){ return Math.min(1, Math.max(0, 1 - (t*MM - 0.8)/3.4)); }
+
+function wallProfile(){
+  const P = [];
+  const rO = i => W.r[i] + W.t[i]/2;
+  const rI = i => Math.max(W.r[i] - W.t[i]/2, 0.028);
+  P.push([0,0,0]); P.push([rO(0), 0, 0]);
+  for(let i=0;i<NST;i++) P.push([rO(i), W.y[i], thin01(W.t[i])]);
+  const top = NST-1;
+  P.push([(rO(top)+rI(top))/2, W.y[top]+0.010, thin01(W.t[top])]);
+  let iLow = 0;
+  for(let i=0;i<NST;i++){ if(W.y[i] >= BASET){ iLow = i; break; } }
+  for(let i=top;i>=iLow;i--) P.push([rI(i), W.y[i], thin01(W.t[i])]);
+  const a = Math.max(iLow-1,0);
+  let rb = rI(a);
+  if(a !== iLow){
+    const k = (BASET-W.y[a])/((W.y[iLow]-W.y[a])||1);
+    rb = rI(a) + (rI(iLow)-rI(a))*k;
+  }
+  P.push([Math.max(rb,0.035), BASET, 0]);
+  P.push([0, BASET, 0]);
+  return P;
+}
+function chaikin(P){
+  const Q = [P[0]];
+  for(let i=0;i<P.length-1;i++){
+    const a=P[i], b=P[i+1];
+    Q.push([a[0]*.75+b[0]*.25, a[1]*.75+b[1]*.25, a[2]*.75+b[2]*.25]);
+    Q.push([a[0]*.25+b[0]*.75, a[1]*.25+b[1]*.75, a[2]*.25+b[2]*.75]);
+  }
+  Q.push(P[P.length-1]);
+  return Q;
+}
+
+const SIN = new Float32Array(SEGS+1), COS = new Float32Array(SEGS+1);
+for(let j=0;j<=SEGS;j++){ const a=j/SEGS*Math.PI*2; SIN[j]=Math.sin(a); COS[j]=Math.cos(a); }
+
+function buildGeom(){
+  const np = chaikin(wallProfile()).length, nv = np*(SEGS+1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv*3),3));
+  g.setAttribute('normal',   new THREE.BufferAttribute(new Float32Array(nv*3),3));
+  g.setAttribute('uv',       new THREE.BufferAttribute(new Float32Array(nv*2),2));
+  g.setAttribute('aThin',    new THREE.BufferAttribute(new Float32Array(nv),1));
+  const idx = new Uint32Array((np-1)*SEGS*6); let o = 0;
+  for(let i=0;i<np-1;i++) for(let j=0;j<SEGS;j++){
+    const p=i*(SEGS+1)+j, q=p+1, r=(i+1)*(SEGS+1)+j, t=r+1;
+    idx[o++]=p; idx[o++]=r; idx[o++]=q; idx[o++]=q; idx[o++]=r; idx[o++]=t;
+  }
+  g.setIndex(new THREE.BufferAttribute(idx,1));
+  const uv = g.attributes.uv.array;
+  for(let i=0;i<np;i++) for(let j=0;j<=SEGS;j++){
+    const k=i*(SEGS+1)+j; uv[k*2]=j/SEGS; uv[k*2+1]=i/(np-1);
+  }
+  updateGeom(g);
+  return g;
+}
+function updateGeom(g){
+  const LP = chaikin(wallProfile()), np = LP.length;
+  const pos=g.attributes.position.array, nor=g.attributes.normal.array, th=g.attributes.aThin.array;
+  for(let i=0;i<np;i++){
+    const p=LP[i], pm=LP[Math.max(i-1,0)], pp=LP[Math.min(i+1,np-1)];
+    let dx=pp[0]-pm[0], dy=pp[1]-pm[1];
+    const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+    const nx=dy, ny=-dx, x=p[0], y=p[1]+YOFF, tn=p[2], row=i*(SEGS+1);
+    for(let j=0;j<=SEGS;j++){
+      const k=(row+j)*3;
+      pos[k]=x*SIN[j]; pos[k+1]=y; pos[k+2]=x*COS[j];
+      nor[k]=nx*SIN[j]; nor[k+1]=ny; nor[k+2]=nx*COS[j];
+      th[row+j]=tn;
+    }
+  }
+  g.attributes.position.needsUpdate=true;
+  g.attributes.normal.needsUpdate=true;
+  g.attributes.aThin.needsUpdate=true;
+  g.computeBoundingSphere();
+}
+
+/* ---- measurement: this is what the crack roll is actually weighted by ---- */
+function minWallMM(){ let m=1e9; for(let i=0;i<NST;i++) m=Math.min(m,W.t[i]); return m*MM; }
+function extremity(){
+  /* deviation from the form you started with, not absolute slope — otherwise
+     a dish reads as risky simply for being a dish. */
+  let mx=0; const dy=W.h/(NST-1);
+  for(let i=0;i<NST-1;i++){
+    const sl  = (W.r[i+1]-W.r[i])/dy;
+    const sl0 = (W.r0[i+1]-W.r0[i])/dy;
+    mx = Math.max(mx, Math.abs(sl-sl0));
+  }
+  return Math.min(1, Math.max(0,(mx-0.55)/2.0));
+}
+function riskWeight(){
+  const thinF = Math.min(1, Math.max(0,(3.0-minWallMM())/2.2));
+  const ext   = Math.min(1, extremity() + uni.uAsym.value*0.35);
+  return 5 + 58*Math.pow(thinF,1.6) + 20*ext*ext;
+}
+
+let form = FORMS[0];
+loadWall(form);
+
+/* ---------------------------------------------------------------- glsl */
+const NOISE = `
+float hash31(vec3 p){ p=fract(p*0.3183099+vec3(0.11,0.27,0.53)); p*=17.0;
+  return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float vnoise(vec3 x){
+  vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash31(i),hash31(i+vec3(1,0,0)),f.x),
+                 mix(hash31(i+vec3(0,1,0)),hash31(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash31(i+vec3(0,0,1)),hash31(i+vec3(1,0,1)),f.x),
+                 mix(hash31(i+vec3(0,1,1)),hash31(i+vec3(1,1,1)),f.x),f.y),f.z);
+}
+float fbm(vec3 p){ float a=.5,s=0.; for(int i=0;i<4;i++){ s+=a*vnoise(p); p*=2.03; a*=.5; } return s; }
+float angWrap(float d){ return atan(sin(d),cos(d)); }
+`;
+
+const VERT = NOISE + `
+uniform float uCrack, uSeed, uYMin, uYMax, uAsym, uTexAmt, uTexMode, uAspect;
+attribute float aThin;
+varying vec3 vPos, vNrm, vWNrm, vWPos;
+varying float vDisp, vThin;
+
+/* jittered lattice on the (angle, height) surface domain. cu is an integer
+   so the pattern wraps seamlessly at the lathe seam. */
+float lattice(vec3 p, float cu, float cv, float R, float sharp){
+  float u = atan(p.x, p.z)*0.15915494 + 0.5;
+  float v = clamp((p.y-uYMin)/max(uYMax-uYMin,1e-4), 0.0, 1.0);
+  vec2 g = vec2(u*cu, v*cv);
+  vec2 gi = floor(g), gf = fract(g);
+  float sv = uAspect * cu/cv;
+  float acc = 0.0;
+  for(int a=-1;a<=1;a++){
+    for(int b=-1;b<=1;b++){
+      vec2 o = vec2(float(a), float(b));
+      float cx = mod(gi.x+o.x, cu);
+      float cy = gi.y+o.y;
+      vec2 jit = vec2(hash31(vec3(cx,cy,3.7)), hash31(vec3(cx,cy,8.3)))*0.62 + 0.19;
+      float d = length((o + jit - gf) * vec2(1.0, sv));
+      float r = R*(0.72 + 0.52*hash31(vec3(cx,cy,15.1)));
+      acc = max(acc, pow(max(0.0, 1.0 - d/r), sharp));
+    }
+  }
+  return acc;
+}
+
+float texShape(vec3 p){
+  if(uTexMode < 0.5) return 0.0;
+  float v = clamp((p.y-uYMin)/max(uYMax-uYMin,1e-4), 0.0, 1.0);
+  if(uTexMode < 1.5)                       // throwing rings
+    return sin(v*44.0 + fbm(p*2.2)*1.6)*0.5 + 0.5;
+  if(uTexMode < 2.5)                       // applied beads
+    return lattice(p, 30.0, 20.0, 0.46, 0.55);
+  return lattice(p, 10.0, 7.0, 0.50, 2.4)  // thorns, weighted upward
+       * (0.45 + 0.55*smoothstep(0.10,0.80,v));
+}
+float texH(){
+  if(uTexMode < 1.5) return 0.030;
+  if(uTexMode < 2.5) return 0.085;
+  return 0.34;
+}
+
+vec3 dsp(vec3 p, vec3 n){
+  vec3 rad = vec3(p.x, 0.0, p.z);
+  float rl = length(rad);
+  vec3 rdir = rad/max(rl,1e-4);
+  // off-round: radial, low frequency, so both walls move together
+  float aF = fbm(vec3(p.x*1.15, p.y*0.80, p.z*1.15) + uSeed*17.0) - 0.5;
+  vec3 q = p + rdir * aF * uAsym * 0.62 * clamp(rl/0.40, 0.0, 1.0);
+  // applied texture: along the normal, outer wall only
+  float outw = smoothstep(-0.05, 0.30, dot(n, rdir));
+  float rfac = 0.40 + 0.70*clamp(rl/0.85, 0.0, 1.2);
+  q += n * texShape(p) * texH() * uTexAmt * outw * rfac;
+  return q;
+}
+
+void main(){
+  vec3 n0 = normal;
+  vec3 p0 = dsp(position, n0);
+
+  // normal by finite difference across the displaced surface
+  vec3 up = mix(vec3(0.0,1.0,0.0), vec3(1.0,0.0,0.0), step(0.95, abs(n0.y)));
+  vec3 T1 = normalize(cross(n0, up));
+  vec3 T2 = normalize(cross(n0, T1));
+  float e = 0.010;
+  vec3 nn = normalize(cross(dsp(position+T1*e, n0)-p0, dsp(position+T2*e, n0)-p0));
+  if(dot(nn,n0) < 0.0) nn = -nn;
+
+  // dunting crack pulls the wall inward along the fracture
+  float yy = (position.y-uYMin)/(uYMax-uYMin);
+  float ang = atan(position.x, position.z);
+  float wob = (vnoise(vec3(yy*5.0, uSeed, 0.0))-0.5)*1.3;
+  float cd = abs(angWrap(ang - (uSeed*6.283 + wob)));
+  p0 -= n0 * smoothstep(0.16,0.0,cd) * smoothstep(0.92,0.42,yy) * uCrack * 0.045;
+
+  vec3 rd = vec3(position.x,0.0,position.z);
+  vDisp = texShape(position) * smoothstep(-0.05,0.30, dot(n0, rd/max(length(rd),1e-4))) * uTexAmt;
+
+  vThin = aThin;
+  vPos = p0; vNrm = nn;
+  vec4 wp = modelMatrix * vec4(p0,1.0);
+  vWPos = wp.xyz;
+  vWNrm = normalize(mat3(modelMatrix) * nn);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+
+const FRAG = NOISE + `
+uniform vec3 uRaw,uFired,uFired2,uPool,uBrk,uClay,uHeatCol,uStain;
+uniform float uFire,uHeat,uGloss,uSpeckle,uCraze,uCrawl,uRun,uCrack,uPin,uClaySpeck,uGrad,uTexAmt;
+uniform float uSeed,uYMin,uYMax,uLight;
+varying vec3 vPos,vNrm,vWNrm,vWPos;
+varying float vDisp, vThin;
+
+vec2 worley(vec3 p){
+  vec3 i=floor(p), f=fract(p); float f1=9.,f2=9.;
+  for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++){
+    vec3 g=vec3(float(x),float(y),float(z));
+    vec3 o=vec3(hash31(i+g),hash31(i+g+31.7),hash31(i+g+71.3));
+    float d=length(g+o-f);
+    if(d<f1){f2=f1;f1=d;} else if(d<f2){f2=d;}
+  }
+  return vec2(f1,f2);
+}
+
+void main(){
+  vec3 N = normalize(vWNrm);
+  if(!gl_FrontFacing) N = -N;
+  vec3 V = normalize(cameraPosition - vWPos);
+  float yy = clamp((vPos.y-uYMin)/(uYMax-uYMin),0.,1.);
+
+  /* ---- glaze thickness field -------------------------------------- */
+  float grain = fbm(vPos*7.0 + uSeed*13.0);
+  float flow  = (1.0-yy);
+  float ledge = max(0.0, N.y)*0.5 + max(0.0,-N.y)*0.25;
+  float thick = clamp(flow*0.60 + ledge*0.40 + (grain-0.5)*0.45
+                    + (1.0-vDisp)*0.16*uTexAmt, 0.0, 1.0);
+
+  /* ---- glaze runs: vertical streaks that travel down and stop in a
+     bead. Kept as its own channel — folding it into the thickness field hid it,
+     because pooling had already saturated that mix low on the wall. */
+  vec3  sax     = vec3(vPos.x*30.0, 0.0, vPos.z*30.0);
+  float streakN = fbm(sax + vec3(0.0, vPos.y*1.05, 0.0) + uSeed*7.0);
+  float streak  = smoothstep(0.46,0.60, streakN);
+  float stopH   = 0.10 + 0.26*vnoise(sax*0.85 + vec3(0.0,3.7,0.0) + uSeed*11.0);
+  float rbody   = smoothstep(stopH-0.01, stopH+0.08, yy) * (1.0-smoothstep(0.44,0.74,yy));
+  float q       = (yy-stopH)/0.030;
+  float bead    = exp(-q*q);
+  float runM    = clamp(uRun * streak * (rbody + bead*1.4), 0.0, 1.0);
+
+  // thin over the rim -> glaze breaks to clay. A run also starves the
+  // wall above where it left from.
+  float rimBreak = smoothstep(0.955,0.999,yy);
+  float thin = clamp(rimBreak + uRun*streak*smoothstep(0.60,0.86,yy)*0.45
+                   + vDisp*vDisp*0.62, 0.0, 1.0);
+
+  /* ---- clay body --------------------------------------------------- */
+  float claySp = smoothstep(0.66,0.83, fbm(vPos*46.0 + uSeed*2.7));
+  vec3 clayC = uClay*(0.86 + grain*0.28);
+  clayC = mix(clayC, clayC*0.34, claySp*uClaySpeck);
+
+  /* ---- base colour: raw vs fired ---------------------------------- */
+  vec3 rawC = uRaw * (0.86 + grain*0.30);
+  vec3 fcol = mix(uFired, uFired2, uGrad*smoothstep(0.08,0.92, yy + (grain-0.5)*0.30));
+  vec3 fireC = mix(fcol, uPool, thick*0.95);
+  fireC = mix(fireC, uPool*0.72, runM*0.95);            // the run itself
+  fireC = mix(fireC, mix(clayC, uBrk, 0.66), thin*0.85); // break to clay
+  fireC *= (0.90 + grain*0.22);
+
+  // unglazed foot ring — always bare clay, never glazed
+  float foot = smoothstep(0.085,0.045, vPos.y-uYMin);
+  // crawling: glaze pulls back into beads, bare clay shows
+  float crawlN = fbm(vPos*4.6 + uSeed*29.0);
+  float crawl = uCrawl * smoothstep(0.56,0.66,crawlN);
+
+  vec3 base = mix(rawC, fireC, uFire);
+  base = mix(base, clayC, max(foot, crawl*uFire));
+
+  // iron speckle through the glaze
+  float sp = smoothstep(0.72,0.86, fbm(vPos*38.0+uSeed));
+  base = mix(base, base*0.42, sp*uSpeckle*uFire);
+
+  /* ---- cooling faults --------------------------------------------- */
+  vec2 w = worley(vPos*26.0 + uSeed*3.0);
+  float craze = smoothstep(0.042,0.004, w.y-w.x) * uCraze;
+  base = mix(base, mix(base*0.62, uStain, 0.55), craze*0.88);
+
+  float pinN = smoothstep(0.80,0.93, fbm(vPos*54.0+uSeed*5.0));
+  float pin = pinN*uPin;
+  base = mix(base, base*0.30, pin);
+
+  float ang = atan(vPos.x, vPos.z);
+  float wob = (vnoise(vec3(yy*5.0,uSeed,0.0))-0.5)*1.3;
+  float cd = abs(angWrap(ang-(uSeed*6.283+wob)));
+  float crackM = smoothstep(0.055,0.0,cd)*smoothstep(0.92,0.42,yy)*uCrack;
+  base = mix(base, uClay*0.18, crackM);
+
+  /* ---- lighting ---------------------------------------------------- */
+  vec3 L1 = normalize(vec3(0.55,0.80,0.55));
+  vec3 L2 = normalize(vec3(-0.75,0.15,-0.35));
+  vec3 L3 = normalize(vec3(-0.15,0.25,-1.0));
+  float d1 = max(dot(N,L1),0.), d2 = max(dot(N,L2),0.), d3 = max(dot(N,L3),0.);
+  vec3 diff = vec3(1.0,0.96,0.90)*d1*0.95 + vec3(0.55,0.62,0.75)*d2*0.30;
+  diff += 0.20; // ambient bounce off the shelf
+
+  float glossy = uGloss*uFire;
+  glossy *= (1.0 - craze*0.35 - crawl*uFire*0.8 - crackM*0.9 - pin*0.5);
+  glossy = max(glossy, uGloss*uFire*runM*0.85);
+  glossy = max(glossy,0.0);
+  vec3 H1 = normalize(L1+V), H3 = normalize(L3+V);
+  float shin = mix(6.0, 78.0, glossy);
+  float spec = pow(max(dot(N,H1),0.), shin)*glossy*1.15
+             + pow(max(dot(N,H3),0.), shin*0.6)*glossy*0.5;
+  float fres = pow(1.0-max(dot(N,V),0.), 4.0);
+
+  vec3 col = base*diff*uLight;
+  col += vec3(1.0,0.97,0.93)*spec*uLight;
+  col += mix(vec3(0.10,0.11,0.13), vec3(0.9,0.85,0.8), glossy)*fres*(0.25+0.55*glossy)*uLight;
+  col += vec3(0.85,0.55,0.35)*d3*0.10*uLight;
+
+  /* thin walls read as backlit while unfired — the risk you can still act on */
+  float warn = vThin*(1.0-uFire);
+  col = mix(col, col*0.50 + vec3(1.0,0.56,0.24)*(0.50+0.62*fres), warn*0.88);
+
+  /* ---- incandescence in the kiln ---------------------------------- */
+  float inner = 0.55 + 0.45*(1.0-yy);
+  vec3 glow = uHeatCol * uHeat * (0.55 + 0.55*grain) * inner;
+  col += glow;
+  col = mix(col, col*0.5 + glow*1.6, uHeat*0.6);
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const uni = {
+  uRaw:{value:new THREE.Color()}, uFired:{value:new THREE.Color()},
+  uPool:{value:new THREE.Color()}, uBrk:{value:new THREE.Color()},
+  uClay:{value:new THREE.Color()}, uHeatCol:{value:new THREE.Color('#FF6A18')},
+  uFired2:{value:new THREE.Color()}, uStain:{value:new THREE.Color('#8A3A26')},
+  uClaySpeck:{value:0}, uGrad:{value:0},
+  uAsym:{value:0}, uTexAmt:{value:0.55}, uTexMode:{value:0}, uAspect:{value:0.45},
+  uFire:{value:0}, uHeat:{value:0}, uGloss:{value:1}, uSpeckle:{value:.3},
+  uCraze:{value:0}, uCrawl:{value:0}, uRun:{value:0}, uCrack:{value:0}, uPin:{value:0},
+  uSeed:{value:Math.random()}, uYMin:{value:YMIN}, uYMax:{value:YMAX}, uLight:{value:1},
+};
+const mat = new THREE.ShaderMaterial({
+  uniforms:uni, vertexShader:VERT, fragmentShader:FRAG, side:THREE.DoubleSide
+});
+const pot = new THREE.Mesh(buildGeom(), mat);
+scene.add(pot);
+
+/* shelf: soft contact shadow only, no floor plane */
+const shadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(4,4),
+  new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false,
+    uniforms:{ uK:{value:1} },
+    vertexShader:`varying vec2 vU; void main(){ vU=uv;
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec2 vU; uniform float uK;
+      void main(){ float d=length((vU-0.5)*vec2(1.9,2.6));
+        float a=smoothstep(0.5,0.03,d); gl_FragColor=vec4(0.,0.,0.,a*0.72*uK); }`
+  })
+);
+shadow.rotation.x = -Math.PI/2;
+shadow.position.y = YMIN + 0.002;
+scene.add(shadow);
+
+/* background: kiln interior, warms while firing */
+const bg = new THREE.Mesh(
+  new THREE.PlaneGeometry(2,2),
+  new THREE.ShaderMaterial({
+    depthTest:false, depthWrite:false,
+    uniforms:{ uHeat:{value:0} },
+    vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=vec4(position.xy,0.999,1.); }`,
+    fragmentShader:`varying vec2 vU; uniform float uHeat;
+      void main(){
+        float r = length((vU-vec2(0.5,0.42))*vec2(1.25,1.0));
+        vec3 cold = mix(vec3(0.145,0.118,0.094), vec3(0.062,0.051,0.043), smoothstep(0.1,0.85,r));
+        vec3 hot  = mix(vec3(0.62,0.20,0.045), vec3(0.13,0.035,0.012), smoothstep(0.05,0.9,r));
+        gl_FragColor = vec4(mix(cold,hot,uHeat), 1.0);
+      }`
+  })
+);
+bg.frustumCulled = false;
+const bgScene = new THREE.Scene(); bgScene.add(bg);
+const bgCam = new THREE.Camera();
+
+/* ---------------------------------------------------------------- orbit */
+let az = 0.5, el = 0.16, dist = 6.4, target = new THREE.Vector3(0,0.02,0);
+let drag = false, lx = 0, ly = 0;
+const el0 = renderer.domElement;
+el0.style.cursor = 'grab';
+let sculpting=false, dirty=false, tool='turn', brush=0.20;
+const rc = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const plane = new THREE.Plane(new THREE.Vector3(1,0,0), 0);
+const fwd = new THREE.Vector3(), hitv = new THREE.Vector3(), cdir = new THREE.Vector3();
+
+/* The pot is a solid of revolution, so the cursor only ever needs two numbers:
+   height up the wall, and radius from the axis. Project onto the vertical
+   plane through the axis that is PERPENDICULAR to the view — the screen
+   plane. (Using the plane that contains the view direction fails: the camera
+   itself lies in that plane, so every ray "hits" it at its own origin.)
+   Screen-horizontal distance from the axis is the silhouette radius. */
+function planeHit(cx,cy){
+  const b = el0.getBoundingClientRect();
+  ndc.x = ((cx-b.left)/b.width)*2-1; ndc.y = -((cy-b.top)/b.height)*2+1;
+  rc.setFromCamera(ndc, camera);
+  camera.getWorldDirection(cdir);
+  fwd.set(cdir.x,0,cdir.z).normalize();
+  plane.normal.copy(fwd); plane.constant = 0;
+  const p = rc.ray.intersectPlane(plane, hitv);
+  if(!p) return null;
+  return { y: p.y - YMIN, rad: Math.abs(p.x*(-fwd.z) + p.z*fwd.x) };
+}
+function nearestStation(y){
+  let k=0, best=1e9;
+  for(let i=0;i<NST;i++){ const d=Math.abs(W.y[i]-y); if(d<best){best=d;k=i;} }
+  return k;
+}
+/* pulling the wall out stretches the clay: circumference grows, wall thins,
+   and it does not come back. Smoothing evens the wall, which raises the floor. */
+function stretchThin(){
+  for(let i=0;i<NST;i++){
+    const geoT = T0*(W.r0[i]/Math.max(W.r[i],0.05));
+    if(geoT < W.t[i]) W.t[i] += 0.70*(geoT - W.t[i]);
+    W.t[i] = Math.min(Math.max(W.t[i],0.004),0.16);
+  }
+}
+function applyDrag(h){
+  if(tool==='shape'){
+    const i = nearestStation(h.y);
+    const d = Math.max(0.06, h.rad) - W.r[i];
+    for(let j=0;j<NST;j++){
+      const q=(W.y[j]-h.y)/brush, w=Math.exp(-q*q);
+      if(w<0.004) continue;
+      W.r[j] = Math.max(0.05, W.r[j] + d*w);
+    }
+  } else {
+    const c=W.r.slice(), ct=W.t.slice();
+    for(let j=1;j<NST-1;j++){
+      const q=(W.y[j]-h.y)/brush, w=Math.exp(-q*q)*0.55;
+      if(w<0.004) continue;
+      W.r[j] = c[j] + ((c[j-1]+c[j+1])/2 - c[j])*w;
+      W.t[j] = ct[j] + ((ct[j-1]+ct[j+1])/2 - ct[j])*w;
+    }
+  }
+  stretchThin(); dirty = true;
+}
+
+const undoStack = [];
+function pushUndo(){ undoStack.push({r:W.r.slice(), t:W.t.slice()}); if(undoStack.length>40) undoStack.shift(); }
+function undo(){ const u=undoStack.pop(); if(!u) return; W.r=u.r; W.t=u.t; dirty=true; }
+addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='z'){ e.preventDefault(); undo(); } });
+
+el0.addEventListener('pointerdown', e=>{
+  el0.setPointerCapture(e.pointerId);
+  const h = (phase==='raw' && tool!=='turn') ? planeHit(e.clientX,e.clientY) : null;
+  if(h && h.y>-0.08 && h.y<W.h+0.08){
+    const i = nearestStation(h.y);
+    if(h.rad < W.r[i] + W.t[i]/2 + 0.18){
+      sculpting=true; pushUndo(); applyDrag(h);
+      el0.style.cursor='crosshair'; return;
+    }
+  }
+  drag=true; lx=e.clientX; ly=e.clientY; el0.style.cursor='grabbing';
+});
+el0.addEventListener('pointerup', ()=>{ drag=false; sculpting=false; el0.style.cursor='grab'; });
+el0.addEventListener('pointermove', e=>{
+  if(sculpting){
+    const h = planeHit(e.clientX,e.clientY);
+    if(h) applyDrag(h);
+    return;
+  }
+  if(!drag){
+    if(phase==='raw' && tool!=='turn'){
+      const g = planeHit(e.clientX,e.clientY);
+      const on = g && g.y>-0.08 && g.y<W.h+0.08 && g.rad < W.r[nearestStation(g.y)] + 0.18;
+      el0.style.cursor = on ? 'ew-resize' : 'grab';
+    }
+    return;
+  }
+  az -= (e.clientX-lx)*0.006; el += (e.clientY-ly)*0.005;
+  el = Math.max(-0.45, Math.min(1.05, el)); lx=e.clientX; ly=e.clientY;
+});
+el0.addEventListener('wheel', e=>{ e.preventDefault();
+  dist = Math.max(3.6, Math.min(11, dist + e.deltaY*0.004)); }, {passive:false});
+
+function placeCam(){
+  camera.position.set(
+    target.x + dist*Math.cos(el)*Math.sin(az),
+    target.y + dist*Math.sin(el),
+    target.z + dist*Math.cos(el)*Math.cos(az)
+  );
+  camera.lookAt(target);
+}
+
+/* ---------------------------------------------------------------- ui */
+const $ = id=>document.getElementById(id);
+let glaze = GLAZES[0], clay = CLAYS[1], tex = TEXTURES[0], durIdx = 0, phase = 'raw', outcome = null;
+let t0 = 0, dur = DURATIONS[0].ms, leftTab = false, watchMs = 0, savedPng = false;
+
+function applyGlaze(g){
+  glaze = g;
+  uni.uRaw.value.set(g.raw); uni.uFired.value.set(g.fired);
+  uni.uPool.value.set(g.pool); uni.uBrk.value.set(g.brk);
+  uni.uFired2.value.set(g.fired2 || g.fired); uni.uGrad.value = g.fired2 ? 1 : 0;
+  uni.uGloss.value = g.gloss; uni.uSpeckle.value = g.speckle;
+  [...$('glazes').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===g.id));
+  $('gzname').textContent = g.hint;
+}
+function applyTex(t){
+  tex = t; uni.uTexMode.value = t.mode;
+  [...$('modes').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===t.id));
+  $('txname').textContent = t.mode ? t.name.toLowerCase() : 'smooth';
+  $('amt').disabled = !t.mode;
+}
+function applyForm(f){
+  form = f;
+  loadWall(f);
+  undoStack.length = 0;
+  pot.geometry.dispose(); pot.geometry = buildGeom();
+  uni.uYMin.value = YMIN; uni.uYMax.value = YMAX;
+  const maxR = Math.max.apply(null, W.r) + T0;
+  shadow.position.y = YMIN + 0.002;
+  shadow.scale.setScalar(Math.max(0.55, maxR/0.88));
+  dist = Math.max(4.2, Math.max(YMAX-YMIN, maxR*2.0)*3.35);
+  // physical aspect of the (angle, height) domain, so beads stay round
+  uni.uAspect.value = (YMAX-YMIN) / (2*Math.PI*Math.max(maxR*0.75, 0.05));
+  [...$('forms').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===f.id));
+  $('frmname').textContent = f.name;
+  updateWallReadout();
+}
+function updateWallReadout(){
+  const mm = minWallMM(), p = riskWeight();
+  $('wallv').textContent = mm.toFixed(1)+' mm';
+  $('riskv').textContent = p<14 ? 'Low' : p<38 ? 'Moderate' : 'High';
+  $('riskv').style.color = p<14 ? '' : p<38 ? 'var(--chalk)' : 'var(--heat)';
+  $('wallv').style.color = mm<2.0 ? 'var(--heat)' : '';
+}
+function applyClay(c){
+  clay = c;
+  uni.uClay.value.set(c.col); uni.uClaySpeck.value = c.speck;
+  [...$('clays').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===c.id));
+  $('clname').textContent = c.name;
+}
+const TOOLHINT = { turn:'drag to turn it', shape:'drag on the wall', smooth:'drag to even it' };
+function setTool(id){
+  tool = id;
+  [...$('tools').children].forEach(x=>x.setAttribute('aria-pressed', x.dataset.tool===id));
+  $('toolhint').textContent = TOOLHINT[id];
+  $('brush').disabled = (id==='turn') || phase!=='raw';
+  el0.style.cursor = 'grab';
+}
+[['turn','Turn'],['shape','Shape'],['smooth','Smooth']].forEach(([id,label])=>{
+  const b = document.createElement('button');
+  b.className='gz'; b.dataset.tool=id; b.setAttribute('aria-pressed', id==='turn');
+  b.textContent = label;
+  b.onclick = ()=>{ if(phase!=='raw') return; setTool(id); };
+  $('tools').appendChild(b);
+});
+$('brush').oninput = e=>{ brush = e.target.value/100; $('brushv').textContent = e.target.value; };
+$('undo').onclick = ()=> undo();
+setTool('turn');
+TEXTURES.forEach(t=>{
+  const b = document.createElement('button');
+  b.className='gz'; b.dataset.id=t.id; b.setAttribute('aria-pressed','false');
+  b.textContent = t.name;
+  b.onclick = ()=>{ if(phase!=='raw') return; applyTex(t); };
+  $('modes').appendChild(b);
+});
+$('amt').oninput  = e=>{ uni.uTexAmt.value = e.target.value/100; $('amtv').textContent = e.target.value; };
+$('asym').oninput = e=>{ uni.uAsym.value  = e.target.value/100; $('asymv').textContent = e.target.value; };
+FORMS.forEach(f=>{
+  const b = document.createElement('button');
+  b.className='gz'; b.dataset.id=f.id; b.setAttribute('aria-pressed','false');
+  b.textContent = f.name;
+  b.onclick = ()=>{ if(phase!=='raw') return; applyForm(f); };
+  $('forms').appendChild(b);
+});
+CLAYS.forEach(c=>{
+  const b = document.createElement('button');
+  b.className='cl'; b.dataset.id=c.id; b.title=c.name; b.setAttribute('aria-pressed','false');
+  b.innerHTML = `<span style="background:${c.col}"></span>`;
+  b.onclick = ()=>{ if(phase!=='raw') return; applyClay(c); };
+  $('clays').appendChild(b);
+});
+GLAZES.forEach(g=>{
+  const b = document.createElement('button');
+  b.className='gz'; b.dataset.id=g.id; b.title=g.hint; b.setAttribute('aria-pressed','false');
+  b.innerHTML = `<span class="chip" style="background:${g.raw}"></span>${g.name}`;
+  b.onclick = ()=>{ if(phase!=='raw') return; applyGlaze(g); };
+  $('glazes').appendChild(b);
+});
+DURATIONS.forEach((d,i)=>{
+  const b=document.createElement('button');
+  b.className='seg'; b.textContent=d.label; b.setAttribute('aria-pressed', i===0);
+  b.onclick=()=>{ if(phase!=='raw') return; durIdx=i; dur=d.ms;
+    [...$('durs').children].forEach((x,j)=>x.setAttribute('aria-pressed', j===i)); };
+  $('durs').appendChild(b);
+});
+applyTex(TEXTURES[0]);
+applyForm(FORMS[0]);
+applyClay(CLAYS[1]);
+applyGlaze(GLAZES[0]);
+
+function logLine(html){
+  const d=document.createElement('div'); d.innerHTML=html;
+  $('log').appendChild(d);
+  while($('log').children.length>9) $('log').removeChild($('log').firstChild);
+}
+
+function rollOutcome(){
+  OUTCOMES.dunt.w = riskWeight();
+  const forced = $('force').value;
+  if(forced) return forced;
+  const bias = { clean:1, craze:glaze.crazeBias, run:glaze.runBias,
+                 crawl:glaze.crawlBias, pin:1, dunt:1 };
+  const keys = Object.keys(OUTCOMES);
+  const tot = keys.reduce((s,k)=>s+OUTCOMES[k].w*bias[k],0);
+  let r = Math.random()*tot;
+  for(const k of keys){ r -= OUTCOMES[k].w*bias[k]; if(r<=0) return k; }
+  return 'clean';
+}
+
+/* firing curve: heat → soak → cool. Faults appear on the way down. */
+const STAGES = [
+  { at:0.00, t:20,   name:'Candling',        cone:'—' },
+  { at:0.10, t:200,  name:'Water smoking',   cone:'—' },
+  { at:0.24, t:573,  name:'Quartz inversion',cone:'—' },
+  { at:0.38, t:1000, name:'Body reduction',  cone:'010' },
+  { at:0.50, t:1180, name:'Glaze melt',      cone:'5' },
+  { at:0.58, t:1222, name:'Soak',            cone:'6 down' },
+  { at:0.66, t:1222, name:'Cooling',         cone:'6 down' },
+  { at:0.80, t:800,  name:'Cooling',         cone:'—' },
+  { at:0.87, t:573,  name:'Quartz inversion',cone:'—' },
+  { at:1.00, t:60,   name:'Out of the kiln', cone:'—' },
+];
+function curveAt(p){
+  for(let i=0;i<STAGES.length-1;i++){
+    const a=STAGES[i], b=STAGES[i+1];
+    if(p<=b.at){ const k=(p-a.at)/(b.at-a.at||1);
+      return { temp: a.t+(b.t-a.t)*k, name: k>0.5?b.name:a.name, cone: k>0.5?b.cone:a.cone }; }
+  }
+  return { temp:60, name:'Out of the kiln', cone:'—' };
+}
+
+let logged = {};
+function fireTick(){
+  const p = Math.min(1, (performance.now()-t0)/dur);
+  const c = curveAt(p);
+  $('temp').textContent = Math.round(c.temp);
+  $('stagev').textContent = c.name;
+  $('conev').textContent = c.cone;
+  const secs = Math.floor((performance.now()-t0)/1000);
+  $('clockv').textContent = String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+  $('rampbar').style.width = (p*100)+'%';
+
+  const heat = Math.min(1, Math.max(0,(c.temp-620)/610));
+  uni.uHeat.value = heat;
+  bg.material.uniforms.uHeat.value = heat*0.92;
+  uni.uLight.value = 1 - heat*0.72;
+  shadow.material.uniforms.uK.value = 1 - heat*0.85;
+
+  // glaze melts on the way up and stays melted
+  uni.uFire.value = Math.max(uni.uFire.value, THREE.MathUtils.smoothstep(p,0.42,0.62));
+
+  // faults declare themselves on cooling
+  const cool = THREE.MathUtils.smoothstep(p,0.80,0.95);
+  if(outcome==='craze') uni.uCraze.value = cool;
+  if(outcome==='pin')   uni.uPin.value   = THREE.MathUtils.smoothstep(p,0.62,0.78);
+  if(outcome==='dunt')  uni.uCrack.value = THREE.MathUtils.smoothstep(p,0.86,0.97);
+  if(outcome==='run')   uni.uRun.value   = THREE.MathUtils.smoothstep(p,0.50,0.68);
+  if(outcome==='crawl') uni.uCrawl.value = THREE.MathUtils.smoothstep(p,0.46,0.64);
+
+  const marks = [
+    [0.10,'200°C — <b>water smoking</b>'],
+    [0.24,'573°C — quartz inversion, going up'],
+    [0.50,'1180°C — <b>the glaze is melting</b>'],
+    [0.58,'cone 6 down — soaking'],
+    [0.66,'<b>kiln off</b>. cooling from here'],
+    [0.87,'573°C — quartz inversion, coming down'],
+  ];
+  marks.forEach(([at,txt],i)=>{ if(p>=at && !logged[i]){ logged[i]=1; logLine(txt); } });
+
+  if(p>=1) finish();
+}
+
+function showResult(restored){
+  phase = 'done';
+  const o = OUTCOMES[outcome];
+  $('rtitle').textContent = o.title;
+  $('rbody').textContent = o.body;
+  $('rmeta').textContent = restored
+    ? `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · from the shelf`
+    : `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · cone 6 · ${Math.round(watchMs/1000)}s watched${leftTab?' · left the tab':''}`;
+  $('codev').value = encodeCode();
+  $('result').classList.add('on');
+  $('fire').style.display='none';
+  $('save').style.display='block';
+  $('reset').style.display='block';
+  $('oneway').textContent='One firing per piece';
+  [...$('glazes').children].forEach(b=>b.disabled=true);
+  [...$('clays').children].forEach(b=>b.disabled=true);
+  [...$('forms').children].forEach(b=>b.disabled=true);
+  [...$('modes').children].forEach(b=>b.disabled=true);
+  $('amt').disabled=true; $('asym').disabled=true;
+  setTool('turn');
+  [...$('tools').children].forEach(b=>b.disabled=true);
+  $('brush').disabled=true; $('undo').disabled=true;
+  [...$('durs').children].forEach(b=>b.disabled=true);
+}
+function finish(){
+  logLine('<b>out of the kiln</b>');
+  showResult(false);
+  shelf.push({ code: encodeCode(), thumb: shoot(190,240,0), t: Date.now() });
+  if(shelf.length>10) shelf.shift();
+  renderShelf(); saveShelf();
+  try{ location.hash = $('codev').value; }catch(e){}
+}
+
+$('fire').onclick = ()=>{
+  if(phase!=='raw') return;
+  phase='firing'; t0=performance.now(); logged={}; leftTab=false; watchMs=0;
+  outcome = rollOutcome();
+  uni.uSeed.value = Math.random();
+  $('fire').disabled = true;
+  $('fire').textContent = 'Firing';
+  $('gzstate').textContent = 'in the kiln';
+  logLine('kiln on — <b>'+glaze.name.toLowerCase()+'</b>, cone 6 oxidation');
+};
+$('reset').onclick = ()=>{
+  phase='raw'; outcome=null;
+  uni.uFire.value=0; uni.uHeat.value=0; uni.uCraze.value=0; uni.uCrawl.value=0;
+  uni.uRun.value=0; uni.uCrack.value=0; uni.uPin.value=0; uni.uLight.value=1;
+  uni.uSeed.value=Math.random();
+  bg.material.uniforms.uHeat.value=0; shadow.material.uniforms.uK.value=1;
+  $('result').classList.remove('on');
+  $('fire').style.display='block'; $('fire').disabled=false; $('fire').textContent='Fire';
+  $('save').style.display='none'; $('reset').style.display='none';
+  $('oneway').textContent='Firing is one way';
+  $('gzstate').textContent='unfired'; $('log').innerHTML='';
+  $('temp').textContent='20'; $('stagev').textContent='Cold'; $('conev').textContent='—';
+  $('clockv').textContent='00:00'; $('rampbar').style.width='0%';
+  [...$('glazes').children].forEach(b=>b.disabled=false);
+  [...$('clays').children].forEach(b=>b.disabled=false);
+  [...$('forms').children].forEach(b=>b.disabled=false);
+  [...$('modes').children].forEach(b=>b.disabled=false);
+  $('amt').disabled=!tex.mode; $('asym').disabled=false;
+  [...$('tools').children].forEach(b=>b.disabled=false);
+  $('undo').disabled=false; setTool('turn');
+  applyForm(form);
+  [...$('durs').children].forEach(b=>b.disabled=false);
+  savedPng=false;
+};
+/* ---------------------------------------------------------------- export
+   Render offscreen at a fixed size rather than grabbing the viewport, so the
+   sheet is the same on every screen. */
+function shoot(w,h,azOff,elev){
+  const sz = new THREE.Vector2(); renderer.getSize(sz);
+  const pr = renderer.getPixelRatio(), oAz = az, oEl = el;
+  renderer.setPixelRatio(1); renderer.setSize(w,h,false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  az = oAz + azOff; el = (elev===undefined) ? 0.12 : elev; placeCam();
+  renderer.autoClear = false; renderer.clear();
+  renderer.render(bgScene,bgCam); renderer.render(scene,camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  az = oAz; el = oEl;
+  renderer.setPixelRatio(pr); renderer.setSize(sz.x, sz.y, false);
+  camera.aspect = sz.x/sz.y; camera.updateProjectionMatrix(); placeCam();
+  return url;
+}
+const load1 = u => new Promise(r=>{ const i=new Image(); i.onload=()=>r(i); i.src=u; });
+
+/* letter-spaced text: ctx.letterSpacing is too new to rely on */
+function ls(x,txt,X,Y,sp){ let c=X; for(const ch of txt){ x.fillText(ch,c,Y); c+=x.measureText(ch).width+sp; } }
+
+async function specimenSheet(){
+  const CW=520, CH=560, M=60;
+  const shots = await Promise.all([0, Math.PI/2, Math.PI, Math.PI*1.5].map(o=>load1(shoot(CW,CH,o))));
+  const C=document.createElement('canvas'); C.width=1180; C.height=1560;
+  const x=C.getContext('2d');
+  const DISP="'Barlow Condensed','Arial Narrow',sans-serif";
+  const MONO="'IBM Plex Mono',monospace";
+  x.fillStyle='#17130F'; x.fillRect(0,0,C.width,C.height);
+  x.textBaseline='alphabetic';
+
+  x.fillStyle='#6E655C'; x.font=`13px ${MONO}`;
+  ls(x,'UNFIRED — SPECIMEN SHEET', M, 84, 4.2);
+  const stamp = new Date().toISOString().slice(0,10);
+  x.font=`13px ${MONO}`; const sw=x.measureText(stamp).width;
+  x.fillText(stamp, C.width-M-sw, 84);
+
+  x.fillStyle='#E8E2D6'; x.font=`600 62px ${DISP}`;
+  x.fillText(`${glaze.name.toUpperCase()} ${form.name.toUpperCase()}`, M, 152);
+  x.fillStyle='#4A423B'; x.fillRect(M,178,C.width-M*2,1);
+
+  const cells=[[M,210],[M+CW+20,210],[M,210+CH+20],[M+CW+20,210+CH+20]];
+  shots.forEach((img,i)=>{
+    const [cx,cy]=cells[i];
+    x.drawImage(img,cx,cy,CW,CH);
+    x.fillStyle='#E8E2D6'; x.font=`12px ${MONO}`;
+    ls(x,String(i+1).padStart(2,'0'), cx+14, cy+30, 2.5);
+  });
+
+  x.fillStyle='#4A423B'; x.fillRect(M,1392,C.width-M*2,1);
+  const cols=[M, 433, 806];
+  const rows=[
+    [['Form',form.name],['Clay',clay.name],['Glaze',`${glaze.name} — ${glaze.hint}`]],
+    [['Firing','Cone 6'],['Min wall',minWallMM().toFixed(1)+' mm'],['Result',OUTCOMES[outcome].title]],
+  ];
+  rows.forEach((row,ri)=>{
+    const ly=1428+ri*68, vy=ly+30;
+    row.forEach(([lab,val],ci)=>{
+      x.fillStyle='#6E655C'; x.font=`10px ${MONO}`; ls(x,lab.toUpperCase(),cols[ci],ly,3.4);
+      x.fillStyle='#E8E2D6'; x.font=`500 25px ${DISP}`; x.fillText(val,cols[ci],vy);
+    });
+  });
+  return C.toDataURL('image/png');
+}
+
+$('save').onclick = async ()=>{
+  savedPng = true;
+  const url = await specimenSheet();
+  $('sheetimg').src = url;
+  $('dl').href = url;
+  $('dl').download = `unfired-${form.id}-${glaze.id}-${clay.id}-${outcome}.png`;
+  $('copyimg').textContent = 'Copy image';
+  $('sheet').classList.add('on');
+};
+$('closesheet').onclick = ()=> $('sheet').classList.remove('on');
+$('sheet').onclick = e=>{ if(e.target===$('sheet')) $('sheet').classList.remove('on'); };
+$('copyimg').onclick = async ()=>{
+  try{
+    const blob = await (await fetch($('sheetimg').src)).blob();
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    $('copyimg').textContent = 'Copied';
+  }catch(err){ $('copyimg').textContent = 'Copy blocked'; }
+};
+
+/* ---------------------------------------------------------------- codes
+   A whole piece is 76 bytes: eight header values plus the wall itself
+   (radius and thickness at every station). */
+const OKEYS = Object.keys(OUTCOMES);
+function encodeCode(){
+  const b=[ Math.max(0,FORMS.indexOf(form)), Math.max(0,GLAZES.indexOf(glaze)),
+            Math.max(0,CLAYS.indexOf(clay)), Math.max(0,TEXTURES.indexOf(tex)),
+            Math.round(uni.uTexAmt.value*255), Math.round(uni.uAsym.value*255),
+            Math.max(0,OKEYS.indexOf(outcome)), Math.round(uni.uSeed.value*255) ];
+  for(let i=0;i<NST;i++) b.push(Math.min(255,Math.max(0,Math.round(W.r[i]/2.2*255))));
+  for(let i=0;i<NST;i++) b.push(Math.min(255,Math.max(0,Math.round(W.t[i]/0.20*255))));
+  return btoa(String.fromCharCode.apply(null,b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function applyCode(code){
+  let b;
+  try{
+    const bin = atob(String(code).trim().replace(/-/g,'+').replace(/_/g,'/'));
+    b = Array.from(bin, ch=>ch.charCodeAt(0));
+  }catch(e){ return false; }
+  if(b.length < 8+NST*2) return false;
+  applyForm(FORMS[b[0]] || FORMS[0]);
+  applyGlaze(GLAZES[b[1]] || GLAZES[0]);
+  applyClay(CLAYS[b[2]] || CLAYS[1]);
+  applyTex(TEXTURES[b[3]] || TEXTURES[0]);
+  uni.uTexAmt.value=b[4]/255; $('amt').value=Math.round(b[4]/2.55); $('amtv').textContent=$('amt').value;
+  uni.uAsym.value =b[5]/255; $('asym').value=Math.round(b[5]/2.55); $('asymv').textContent=$('asym').value;
+  uni.uSeed.value =b[7]/255;
+  for(let i=0;i<NST;i++){ W.r[i]=b[8+i]/255*2.2; W.t[i]=b[8+NST+i]/255*0.20; }
+  updateGeom(pot.geometry); updateWallReadout();
+  setFired(OKEYS[b[6]] || 'clean');
+  return true;
+}
+function setFired(oc){
+  outcome = oc;
+  uni.uFire.value=1; uni.uHeat.value=0; uni.uLight.value=1;
+  uni.uCraze.value = oc==='craze'?1:0; uni.uPin.value = oc==='pin'?1:0;
+  uni.uCrack.value = oc==='dunt' ?1:0; uni.uRun.value = oc==='run'?1:0;
+  uni.uCrawl.value = oc==='crawl'?1:0;
+  bg.material.uniforms.uHeat.value=0; shadow.material.uniforms.uK.value=1;
+  $('temp').textContent='60'; $('stagev').textContent='Out of the kiln';
+  $('conev').textContent='—'; $('rampbar').style.width='100%';
+  showResult(true);
+}
+$('copycode').onclick = ()=>{
+  $('codev').select();
+  try{ navigator.clipboard.writeText($('codev').value); }catch(e){ document.execCommand('copy'); }
+  $('copycode').textContent='Copied'; setTimeout(()=>$('copycode').textContent='Copy',1400);
+};
+$('loadcode').onkeydown = e=>{
+  if(e.key!=='Enter') return;
+  const ok = applyCode(e.target.value);
+  e.target.value=''; e.target.placeholder = ok ? 'loaded' : 'that code did not parse';
+  setTimeout(()=>{ $('loadcode').placeholder='paste a piece code and press enter'; },2200);
+};
+
+/* ---------------------------------------------------------------- shelf */
+const shelf = [];
+function renderShelf(){
+  const el2=$('shelf'); el2.innerHTML='';
+  shelf.slice().reverse().forEach(it=>{
+    const b=document.createElement('button');
+    b.title='Load this piece';
+    b.innerHTML=`<img src="${it.thumb}" alt="">`;
+    b.onclick=()=>applyCode(it.code);
+    el2.appendChild(b);
+  });
+}
+async function saveShelf(){
+  try{ if(window.storage) await window.storage.set('kiln:shelf', JSON.stringify(shelf.slice(-10))); }catch(e){}
+}
+async function loadShelf(){
+  try{
+    if(!window.storage) return;
+    const r = await window.storage.get('kiln:shelf');
+    if(r && r.value){ shelf.push(...JSON.parse(r.value)); renderShelf(); }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && phase==='firing') leftTab=true; });
+
+/* ---------------------------------------------------------------- loop */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last = performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = now-last; last = now;
+  if(phase==='firing'){ fireTick(); if(!document.hidden) watchMs += dt; }
+  if(dirty){ updateGeom(pot.geometry); updateWallReadout(); dirty=false; }
+  if(!drag && !sculpting && !reduce) az += 0.00022*dt;
+  placeCam();
+  $('tele').textContent = phase==='raw' ? 'sprint 1 · reveal test'
+    : `watched ${Math.round(watchMs/1000)}s · tab ${leftTab?'left':'held'}${savedPng?' · saved':''}`;
+  renderer.autoClear = false;
+  renderer.clear();
+  renderer.render(bgScene,bgCam);
+  renderer.render(scene,camera);
+}
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+logLine('fresh clay. <b>pick Shape to work the wall.</b>');
+loadShelf();
+if(location.hash.length > 40) applyCode(location.hash.slice(1));
+requestAnimationFrame(loop);
+</script>
