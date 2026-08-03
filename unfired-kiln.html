@@ -772,12 +772,15 @@ void main(){
   vec3 env = envCol(R);
   float F  = min(0.045 + 0.90*pow(1.0-max(dot(N,V),0.0), 5.0), 0.35);
 
-  /* thin-film interference: hue walks with viewing angle. This is what makes
-     raku copper and pearl lustre shift colour as the piece turns — geometry,
-     not a noise texture. */
+  /* thin-film interference: hue walks with viewing angle. The film MODULATES
+     the glaze colour rather than replacing it — it oscillates about 1.0, so
+     multiplying leaves the fired copper in charge and the shift rides on top.
+     Spreading the channels a full 120deg apart (0, .33, .67) and swinging them
+     0..1 swept the whole hue circle instead, which buried the copper under an
+     oil slick. A narrow spread walks to neighbouring hues and back. */
   float ia = 1.0 - max(dot(N,V),0.0);
-  vec3 irid = 0.5 + 0.5*cos(6.28318*(vec3(0.00,0.33,0.67) + ia*2.2 + R.y*0.7));
-  vec3 tint = mix(base, base*irid*1.9, uIrid);
+  vec3 film = 1.0 + 0.42*cos(6.28318*(vec3(0.00,0.10,0.20) + ia*1.15 + R.y*0.35));
+  vec3 tint = mix(base, base*film, uIrid);
 
   vec3 col = base*diff*uLight;                        // clay body under glass
   col += env * F * glossy * 1.55 * uLight;            // the glass layer
@@ -1421,14 +1424,26 @@ function renderShelf(){
     el2.appendChild(b);
   });
 }
-async function saveShelf(){
-  try{ if(window.storage) await window.storage.set('kiln:shelf2', JSON.stringify(shelf.slice(-10))); }catch(e){}
+/* localStorage, not window.storage — the latter only exists inside the
+   artifact runtime, so on a plain page the shelf silently never persisted.
+   Thumbnails are PNG data URLs and ten of them can run to a few hundred KB,
+   so a quota rejection drops the oldest piece and retries rather than
+   failing the whole save. */
+const SHELF_KEY = 'kiln:shelf2';
+function saveShelf(){
+  let items = shelf.slice(-10);
+  while(items.length){
+    try{ localStorage.setItem(SHELF_KEY, JSON.stringify(items)); return; }
+    catch(e){ items = items.slice(1); }
+  }
+  try{ localStorage.removeItem(SHELF_KEY); }catch(e){}
 }
-async function loadShelf(){
+function loadShelf(){
   try{
-    if(!window.storage) return;
-    const r = await window.storage.get('kiln:shelf2');
-    if(r && r.value){ shelf.push(...JSON.parse(r.value)); renderShelf(); }
+    const raw = localStorage.getItem(SHELF_KEY);
+    if(!raw) return;
+    const items = JSON.parse(raw);
+    if(Array.isArray(items) && items.length){ shelf.push(...items); renderShelf(); }
   }catch(e){}
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && phase==='firing') leftTab=true; });

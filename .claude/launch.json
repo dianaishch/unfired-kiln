@@ -5,7 +5,8 @@
       "name": "unfired-sculptor",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5461
+      "port": 5461,
+      "autoPort": true
     }
   ]
 }
