@@ -157,10 +157,17 @@
   .selmenu button[aria-selected="true"]{color:var(--chalk)}
 
   @media (max-width:820px){
-    .rail{width:100%;height:auto;bottom:auto;flex-direction:column;border-right:0;
+    /* A bounded height, not height:auto. .railscroll is flex:1;min-height:0,
+       which only scrolls inside a parent whose height is already decided —
+       with height:auto the scroller grew to its full content instead, and
+       .rail is position:fixed, so it blanketed the canvas. */
+    .rail{width:100%;height:62vh;bottom:auto;flex-direction:column;border-right:0;
       border-bottom:1px solid var(--graphite-2)}
     .readout{left:0;height:auto;gap:18px;flex-wrap:wrap}.temp{font-size:36px}
-    .log,.result,.dev,.telemetry{display:none}
+    .log,.dev{display:none}
+    /* .result alone loses to .result.on (0,1,0 vs 0,2,0), so the card stayed
+       visible over the rail on narrow screens. Match the specificity. */
+    .result,.result.on{display:none}
     .act{margin-top:16px}
   }
   @media (prefers-reduced-motion:reduce){.log div{animation:none;opacity:1}}
@@ -460,7 +467,13 @@ function buildGeom(){
   const idx = new Uint32Array((np-1)*SEGS*6); let o = 0;
   for(let i=0;i<np-1;i++) for(let j=0;j<SEGS;j++){
     const p=i*(SEGS+1)+j, q=p+1, r=(i+1)*(SEGS+1)+j, t=r+1;
-    idx[o++]=p; idx[o++]=r; idx[o++]=q; idx[o++]=q; idx[o++]=r; idx[o++]=t;
+    /* Wind to agree with the vertex normals. The reversed order disagreed with
+       them everywhere, so gl_FrontFacing was inverted and the shader's
+       `if(!gl_FrontFacing) N = -N` flipped the normal on every visible pixel of
+       the OUTER wall — leaving dot(N,V) <= 0 across the whole pot. Anything
+       keyed off the view vector (fresnel, reflections, thin-film) was reading a
+       surface that pointed away from the camera. */
+    idx[o++]=p; idx[o++]=q; idx[o++]=r; idx[o++]=q; idx[o++]=t; idx[o++]=r;
   }
   g.setIndex(new THREE.BufferAttribute(idx,1));
   const uv = g.attributes.uv.array;
@@ -531,7 +544,7 @@ float angWrap(float d){ return atan(sin(d),cos(d)); }
 const VERT = NOISE + `
 uniform float uCrack, uSeed, uYMin, uYMax, uAsym, uTexAmt, uTexMode, uAspect;
 attribute float aThin;
-varying vec3 vPos, vNrm, vWNrm, vWPos, vBaseN;
+varying vec3 vPos, vWNrm, vWPos;
 varying float vDisp, vThin;
 
 /* jittered lattice on the (angle, height) surface domain. cu is an integer
@@ -616,11 +629,10 @@ void main(){
   vDisp = smoothstep(0.62, 1.0, texShape(position)) * outw0 * uTexAmt;
 
   vThin = aThin;
-  vPos = p0; vNrm = nn;
+  vPos = p0;
   vec4 wp = modelMatrix * vec4(p0,1.0);
   vWPos = wp.xyz;
-  vWNrm  = normalize(mat3(modelMatrix) * nn);
-  vBaseN = normalize(mat3(modelMatrix) * n0);   // undisplaced, for the rim term
+  vWNrm = normalize(mat3(modelMatrix) * nn);
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 
@@ -628,7 +640,7 @@ const FRAG = NOISE + `
 uniform vec3 uRaw,uFired,uFired2,uPool,uBrk,uClay,uHeatCol,uStain;
 uniform float uFire,uHeat,uGloss,uSpeckle,uCraze,uCrawl,uRun,uCrack,uPin,uClaySpeck,uGrad,uTexAmt,uBare,uMetal,uIrid;
 uniform float uSeed,uYMin,uYMax,uLight;
-varying vec3 vPos,vNrm,vWNrm,vWPos,vBaseN;
+varying vec3 vPos,vWNrm,vWPos;
 varying float vDisp, vThin;
 
 vec2 worley(vec3 p){
@@ -669,8 +681,7 @@ vec3 envCol(vec3 R){
 
 void main(){
   vec3 N = normalize(vWNrm);
-  vec3 NB = normalize(vBaseN);
-  if(!gl_FrontFacing){ N = -N; NB = -NB; }
+  if(!gl_FrontFacing) N = -N;
   vec3 V = normalize(cameraPosition - vWPos);
   float yy = clamp((vPos.y-uYMin)/(uYMax-uYMin),0.,1.);
 
@@ -684,14 +695,17 @@ void main(){
   /* ---- glaze runs: vertical streaks that travel down and stop in a
      bead. Kept as its own channel — folding it into the thickness field hid it,
      because pooling had already saturated that mix low on the wall. */
-  vec3  sax     = vec3(vPos.x*30.0, 0.0, vPos.z*30.0);
-  float streakN = fbm(sax + vec3(0.0, vPos.y*1.05, 0.0) + uSeed*7.0);
-  float streak  = smoothstep(0.46,0.60, streakN);
-  float stopH   = 0.10 + 0.26*vnoise(sax*0.85 + vec3(0.0,3.7,0.0) + uSeed*11.0);
-  float rbody   = smoothstep(stopH-0.01, stopH+0.08, yy) * (1.0-smoothstep(0.44,0.74,yy));
-  float q       = (yy-stopH)/0.030;
-  float bead    = exp(-q*q);
-  float runM    = clamp(uRun * streak * (rbody + bead*1.4), 0.0, 1.0);
+  float streak = 0.0, runM = 0.0;
+  if(uRun > 0.001){
+    vec3  sax     = vec3(vPos.x*30.0, 0.0, vPos.z*30.0);
+    float streakN = fbm(sax + vec3(0.0, vPos.y*1.05, 0.0) + uSeed*7.0);
+    streak        = smoothstep(0.46,0.60, streakN);
+    float stopH   = 0.10 + 0.26*vnoise(sax*0.85 + vec3(0.0,3.7,0.0) + uSeed*11.0);
+    float rbody   = smoothstep(stopH-0.01, stopH+0.08, yy) * (1.0-smoothstep(0.44,0.74,yy));
+    float q       = (yy-stopH)/0.030;
+    float bead    = exp(-q*q);
+    runM          = clamp(uRun * streak * (rbody + bead*1.4), 0.0, 1.0);
+  }
 
   // thin over the rim -> glaze breaks to clay. A run also starves the
   // wall above where it left from.
@@ -715,8 +729,11 @@ void main(){
   // unglazed foot ring — always bare clay, never glazed
   float foot = smoothstep(0.085,0.045, vPos.y-uYMin);
   // crawling: glaze pulls back into beads, bare clay shows
-  float crawlN = fbm(vPos*4.6 + uSeed*29.0);
-  float crawl = uCrawl * smoothstep(0.56,0.66,crawlN);
+  float crawl = 0.0;
+  if(uCrawl > 0.001){
+    float crawlN = fbm(vPos*4.6 + uSeed*29.0);
+    crawl = uCrawl * smoothstep(0.56,0.66,crawlN);
+  }
 
   vec3 base = mix(rawC, fireC, uFire);
   base = mix(base, clayC, max(foot, crawl*uFire));
@@ -727,24 +744,38 @@ void main(){
   float sp = smoothstep(0.72,0.86, fbm(vPos*38.0+uSeed));
   base = mix(base, base*0.42, sp*uSpeckle*uFire);
 
-  /* ---- cooling faults --------------------------------------------- */
-  vec2 w = worley(vPos*26.0 + uSeed*3.0);
-  float craze = smoothstep(0.042,0.004, w.y-w.x) * uCraze;
-  base = mix(base, mix(base*0.62, uStain, 0.55), craze*0.88);
+  /* ---- cooling faults ---------------------------------------------
+     Each fault is gated on its own uniform. A piece only ever has one, and
+     for most of a firing it has none, so evaluating all three unconditionally
+     spent two worley lookups (27 cells x 3 hashes each) per pixel per frame
+     on a result that was multiplied by zero. The branch is uniform, so it is
+     coherent across the whole draw. */
+  float craze = 0.0;
+  if(uCraze > 0.001){
+    vec2 w = worley(vPos*26.0 + uSeed*3.0);
+    craze = smoothstep(0.042,0.004, w.y-w.x) * uCraze;
+    base = mix(base, mix(base*0.62, uStain, 0.55), craze*0.88);
+  }
 
   /* Craters, not a threshold on fbm — measured, fbm only exceeds 0.80 on
      0.01% of the surface, so the old test produced nothing at all. Worley F1
      gives round pits with ~7% coverage, clustered by a low-frequency field. */
-  vec2 wpin = worley(vPos*44.0 + uSeed*9.0);
-  float pinCluster = smoothstep(0.40,0.62, fbm(vPos*6.0 + uSeed*17.0));
-  float pin = smoothstep(0.24,0.06, wpin.x) * pinCluster * uPin;
-  base = mix(base, base*0.20, pin);
+  float pin = 0.0;
+  if(uPin > 0.001){
+    vec2 wpin = worley(vPos*44.0 + uSeed*9.0);
+    float pinCluster = smoothstep(0.40,0.62, fbm(vPos*6.0 + uSeed*17.0));
+    pin = smoothstep(0.24,0.06, wpin.x) * pinCluster * uPin;
+    base = mix(base, base*0.20, pin);
+  }
 
-  float ang = atan(vPos.x, vPos.z);
-  float wob = (vnoise(vec3(yy*5.0,uSeed,0.0))-0.5)*1.3;
-  float cd = abs(angWrap(ang-(uSeed*6.283+wob)));
-  float crackM = smoothstep(0.055,0.0,cd)*smoothstep(0.92,0.42,yy)*uCrack;
-  base = mix(base, uClay*0.18, crackM);
+  float crackM = 0.0;
+  if(uCrack > 0.001){
+    float ang = atan(vPos.x, vPos.z);
+    float wob = (vnoise(vec3(yy*5.0,uSeed,0.0))-0.5)*1.3;
+    float cd = abs(angWrap(ang-(uSeed*6.283+wob)));
+    crackM = smoothstep(0.055,0.0,cd)*smoothstep(0.92,0.42,yy)*uCrack;
+    base = mix(base, uClay*0.18, crackM);
+  }
 
   /* ---- lighting ---------------------------------------------------- */
   vec3 L1 = normalize(vec3(0.55,0.80,0.55));
@@ -752,7 +783,7 @@ void main(){
   vec3 L3 = normalize(vec3(-0.15,0.25,-1.0));
   float d1 = max(dot(N,L1),0.), d2 = max(dot(N,L2),0.), d3 = max(dot(N,L3),0.);
   vec3 diff = vec3(1.0,0.96,0.90)*d1*0.95 + vec3(0.55,0.62,0.75)*d2*0.30;
-  diff += 0.26; // ambient bounce off the shelf
+  diff += 0.20; // ambient bounce off the shelf
 
   float glossy = uGloss*uFire;
   glossy *= (1.0 - craze*0.35 - crawl*uFire*0.8 - crackM*0.9 - pin*0.5);
@@ -760,37 +791,36 @@ void main(){
   glossy *= (1.0 - uBare*0.94);
   glossy = max(glossy,0.0);
   vec3 H1 = normalize(L1+V), H3 = normalize(L3+V);
-  float shin = mix(5.0, 30.0, glossy);
-  float spec = pow(max(dot(N,H1),0.), shin)*glossy*0.55
-             + pow(max(dot(N,H3),0.), shin*0.6)*glossy*0.22;
+  float shin = mix(6.0, 78.0, glossy);
+  float spec = pow(max(dot(N,H1),0.), shin)*glossy*1.15
+             + pow(max(dot(N,H3),0.), shin*0.6)*glossy*0.5;
+  float fres = pow(1.0-max(dot(N,V),0.), 4.0);
 
-  /* Wet look. A glaze is a glass layer reflecting the room, so reflect the
-     view vector against a dark kiln environment with a brighter band above.
-     Dark overall, so it reads as sheen and moving highlights rather than the
-     flat white fill the old rim term produced. */
-  vec3 R   = reflect(-V, N);
-  vec3 env = envCol(R);
-  float F  = min(0.045 + 0.90*pow(1.0-max(dot(N,V),0.0), 5.0), 0.35);
-
-  /* thin-film interference: hue walks with viewing angle. The film MODULATES
-     the glaze colour rather than replacing it — it oscillates about 1.0, so
-     multiplying leaves the fired copper in charge and the shift rides on top.
-     Spreading the channels a full 120deg apart (0, .33, .67) and swinging them
-     0..1 swept the whole hue circle instead, which buried the copper under an
-     oil slick. A narrow spread walks to neighbouring hues and back. */
-  float ia = 1.0 - max(dot(N,V),0.0);
-  vec3 film = 1.0 + 0.42*cos(6.28318*(vec3(0.00,0.10,0.20) + ia*1.15 + R.y*0.35));
-  vec3 tint = mix(base, base*film, uIrid);
-
-  vec3 col = base*diff*uLight;                        // clay body under glass
-  col += env * F * glossy * 1.55 * uLight;            // the glass layer
+  vec3 col = base*diff*uLight;
   col += vec3(1.0,0.97,0.93)*spec*uLight;
-
-  /* metal has no diffuse term — its colour arrives entirely in the reflection */
-  vec3 metal = env*tint*(0.50 + 1.3*F)*1.45 + vec3(1.0,0.97,0.93)*spec*tint*0.75;
-  col = mix(col, metal, uMetal*uFire);
-
+  col += mix(vec3(0.10,0.11,0.13), vec3(0.9,0.85,0.8), glossy)*fres*(0.25+0.55*glossy)*uLight;
   col += vec3(0.85,0.55,0.35)*d3*0.10*uLight;
+
+  /* Metals are the one surface the model above cannot describe: their colour
+     arrives entirely in the reflection, so diffuse + a Fresnel rim leaves them
+     flat and dead. They get an environment; everything else keeps the lighting
+     above. Gated on uMetal so an ordinary glaze never pays for it. */
+  if(uMetal*uFire > 0.001){
+    vec3 R = reflect(-V, N);
+    vec3 env = envCol(R);
+    float F = min(0.045 + 0.90*pow(1.0-max(dot(N,V),0.0), 5.0), 0.35);
+    /* thin-film interference: hue walks with viewing angle. The film MODULATES
+       the glaze colour rather than replacing it — it oscillates about 1.0, so
+       multiplying leaves the fired copper in charge and the shift rides on top.
+       Spreading the channels a full 120deg apart (0, .33, .67) and swinging
+       them 0..1 swept the whole hue circle instead, which buried the copper
+       under an oil slick. A narrow spread walks to neighbouring hues and back. */
+    float ia = 1.0 - max(dot(N,V),0.0);
+    vec3 film = 1.0 + 0.42*cos(6.28318*(vec3(0.00,0.10,0.20) + ia*1.15 + R.y*0.35));
+    vec3 tint = mix(base, base*film, uIrid);
+    vec3 metal = env*tint*(0.50 + 1.3*F)*1.45 + vec3(1.0,0.97,0.93)*spec*tint*0.75;
+    col = mix(col, metal, uMetal*uFire);
+  }
 
   /* thin walls read as backlit while unfired — the risk you can still act on */
   /* translucency, not incandescence — this is a readout, not a light source */
@@ -940,7 +970,12 @@ el0.addEventListener('pointerdown', e=>{
   }
   drag=true; lx=e.clientX; ly=e.clientY; el0.style.cursor='grabbing';
 });
-el0.addEventListener('pointerup', ()=>{ drag=false; sculpting=false; el0.style.cursor='grab'; });
+/* pointercancel too, not just pointerup — on touch the browser can take the
+   gesture away (scroll takeover, an incoming call), and without this the drag
+   or sculpt stayed latched on and the pot kept following the finger. */
+function endPointer(){ drag=false; sculpting=false; el0.style.cursor='grab'; }
+el0.addEventListener('pointerup', endPointer);
+el0.addEventListener('pointercancel', endPointer);
 el0.addEventListener('pointermove', e=>{
   if(sculpting){
     const h = planeHit(e.clientX,e.clientY);
@@ -972,8 +1007,8 @@ function placeCam(){
 
 /* ---------------------------------------------------------------- ui */
 const $ = id=>document.getElementById(id);
-let glaze = GLAZES[0], clay = CLAYS[1], tex = TEXTURES[0], durIdx = 0, phase = 'raw', outcome = null;
-let t0 = 0, dur = DURATIONS[0].ms, leftTab = false, watchMs = 0, savedPng = false;
+let glaze = GLAZES[0], clay = CLAYS[1], tex = TEXTURES[0], phase = 'raw', outcome = null;
+let t0 = 0, dur = DURATIONS[0].ms, leftTab = false, watchMs = 0;
 
 function applyGlaze(g){
   glaze = g;
@@ -1072,7 +1107,7 @@ GLAZES.forEach(g=>{
 DURATIONS.forEach((d,i)=>{
   const b=document.createElement('button');
   b.className='seg'; b.textContent=d.label; b.setAttribute('aria-pressed', i===0);
-  b.onclick=()=>{ if(phase!=='raw') return; durIdx=i; dur=d.ms;
+  b.onclick=()=>{ if(phase!=='raw') return; dur=d.ms;
     [...$('durs').children].forEach((x,j)=>x.setAttribute('aria-pressed', j===i)); };
   $('durs').appendChild(b);
 });
@@ -1222,6 +1257,12 @@ $('fire').onclick = ()=>{
 };
 $('reset').onclick = ()=>{
   phase='raw'; outcome=null;
+  /* Drop the shared-piece hash. finish() writes it, and boot reads it back,
+     so without this a reload after "New piece" resurrected the old fired pot
+     instead of giving you fresh clay. replaceState, not location.hash='', so
+     it does not push a history entry. */
+  try{ history.replaceState(null,'',location.pathname+location.search); }
+  catch(e){ location.hash=''; }
   uni.uFire.value=0; uni.uHeat.value=0; uni.uCraze.value=0; uni.uCrawl.value=0;
   uni.uRun.value=0; uni.uCrack.value=0; uni.uPin.value=0; uni.uLight.value=1;
   uni.uSeed.value=Math.random();
@@ -1243,7 +1284,6 @@ $('reset').onclick = ()=>{
   $('undo').disabled=false; setTool('turn');
   applyForm(form);
   [...$('durs').children].forEach(b=>b.disabled=false);
-  savedPng=false;
 };
 /* ---------------------------------------------------------------- export
    Render offscreen at a fixed size rather than grabbing the viewport, so the
@@ -1314,7 +1354,6 @@ async function specimenSheet(){
 
 let sheetURL = null, sheetBlob = null;
 $('save').onclick = async ()=>{
-  savedPng = true;
   $('sheet').classList.add('on');
   $('sheetnote').textContent = 'Composing four views…';
   try{
