@@ -14,6 +14,9 @@
     --graphite-2:#4A423B;
     --heat:#FF6A18;
     --ember:#C2340C;
+    --rail:300px;
+    --gap:26px;
+    --readout-h:92px;
     --disp:'Barlow Condensed','Oswald','Arial Narrow',sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
   }
@@ -23,23 +26,23 @@
   canvas{display:block;touch-action:none}
   #stage{position:fixed;inset:0}
 
-  .rail{position:fixed;left:0;top:0;bottom:0;width:284px;padding:22px 20px;overflow-y:auto;
+  .rail{position:fixed;left:0;top:0;bottom:0;width:var(--rail);padding:22px 20px;overflow:hidden;
     display:flex;flex-direction:column;gap:0;z-index:5;
     background:linear-gradient(90deg,rgba(23,19,15,.94),rgba(23,19,15,.55));
     border-right:1px solid var(--graphite-2)}
   .mark{font-family:var(--disp);font-size:13px;letter-spacing:.34em;text-transform:uppercase;
     color:var(--chalk);line-height:1}
   .mark span{color:var(--graphite)}
-  .sub{font-size:9.5px;letter-spacing:.16em;color:var(--graphite);text-transform:uppercase;
+  .sub{font-size:10px;letter-spacing:.16em;color:var(--graphite);text-transform:uppercase;
     margin-top:7px;line-height:1.6}
   hr{border:0;border-top:1px solid var(--graphite-2);margin:16px 0 12px}
 
-  .lbl{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--graphite);
+  .lbl{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--graphite);
     margin-bottom:9px;display:flex;justify-content:space-between}
   .glazes{display:grid;grid-template-columns:1fr 1fr;gap:1px}
   .gz{display:flex;align-items:center;gap:7px;padding:6px 6px;cursor:pointer;
     background:none;border:1px solid transparent;color:var(--chalk);width:100%;text-align:left;
-    font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
   .gz:hover{background:rgba(232,226,214,.05)}
   .gz[aria-pressed="true"]{border-color:var(--graphite);background:rgba(232,226,214,.07)}
   .gz:disabled{opacity:.3;cursor:default}
@@ -47,12 +50,13 @@
     .forms{display:grid;grid-template-columns:1fr 1fr;gap:1px}
   .modes{display:grid;grid-template-columns:1fr 1fr;gap:1px}
   .modes.three{grid-template-columns:1fr 1fr 1fr}
-  .sl{display:flex;align-items:center;gap:10px;margin-top:2px}
-  .sl label{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--graphite);
-    flex:0 0 78px}
-  .sl output{font-size:9px;color:var(--graphite);flex:0 0 24px;text-align:right}
+  .sl{display:flex;align-items:center;margin-top:2px}
+  .sl label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--graphite);
+    flex:0 0 80px}
+  .sl output{font-size:10px;color:var(--graphite);flex:0 0 auto;margin-left:3px;
+    min-width:22px;text-align:left}
   input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:1px;
-    background:var(--graphite-2);margin:12px 0;cursor:pointer}
+    background:var(--graphite-2);margin:12px 0;cursor:pointer;min-width:0}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:15px;
     background:var(--chalk);cursor:pointer}
   input[type=range]::-moz-range-thumb{width:9px;height:15px;background:var(--chalk);
@@ -73,61 +77,52 @@
   .seg[aria-pressed="true"]{color:var(--chalk);border-color:var(--graphite);background:rgba(232,226,214,.06)}
   .seg:disabled{opacity:.35;cursor:default}
 
-  .act{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+  .railscroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
+  .act{margin-top:14px;padding-top:14px;border-top:1px solid var(--graphite-2);display:flex;flex-direction:column;gap:8px}
   button.big{font-family:var(--disp);font-size:19px;letter-spacing:.3em;text-transform:uppercase;
     padding:15px 0;background:var(--ember);color:#fff;border:0;cursor:pointer;transition:background .15s}
   button.big:hover{background:var(--heat)}
-  button.big:disabled{background:var(--brick-2);color:var(--graphite-2);cursor:default}
-  button.ghost{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-    padding:10px 0;background:none;border:1px solid var(--graphite-2);color:var(--graphite);cursor:pointer}
+  button.big.firing{transition:none;background:linear-gradient(90deg,
+    var(--heat) 0 var(--p,0%), var(--brick-2) var(--p,0%) 100%);color:var(--chalk);cursor:default}
+  button.big.firing:hover{background:linear-gradient(90deg,
+    var(--heat) 0 var(--p,0%), var(--brick-2) var(--p,0%) 100%)}
+  button.ghost{width:100%;display:block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;padding:10px 0;background:none;border:1px solid var(--graphite-2);
+    color:var(--graphite);cursor:pointer}
   button.ghost:hover{color:var(--chalk);border-color:var(--graphite)}
-  .warn{font-size:9px;color:var(--graphite);letter-spacing:.1em;text-transform:uppercase;text-align:center}
 
   /* kiln readout */
-  .readout{position:fixed;left:284px;right:0;bottom:0;padding:14px 26px;z-index:5;
+  .readout{position:fixed;left:var(--rail);right:0;bottom:0;height:var(--readout-h);
+    padding:22px 20px;z-index:5;
     border-top:1px solid var(--graphite-2);background:linear-gradient(0deg,rgba(23,19,15,.95),rgba(23,19,15,0));
     display:flex;align-items:flex-end;gap:34px;pointer-events:none}
   .temp{font-family:var(--disp);font-size:52px;line-height:.82;letter-spacing:-.01em;
     font-variant-numeric:tabular-nums}
-  .temp em{font-style:normal;font-size:16px;color:var(--graphite);letter-spacing:.1em;margin-left:5px}
+  .temp em{font-style:normal;font-size:10px;color:var(--graphite);letter-spacing:.1em;margin-left:6px}
   .field{display:flex;flex-direction:column;gap:5px;min-width:90px}
-  .field b{font-weight:500;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase}
-  .field i{font-style:normal;font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--graphite)}
-  .ramp{flex:1;height:2px;background:var(--brick-2);position:relative;margin-bottom:7px;min-width:80px}
-  .ramp b{position:absolute;left:0;top:0;bottom:0;background:var(--heat);width:0%}
+  .field b{font-weight:400;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk)}
+  .field i{font-style:normal;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--graphite)}
 
   /* log */
-  .log{position:fixed;right:26px;top:22px;width:250px;z-index:5;text-align:right;
-    font-size:10px;line-height:1.9;color:var(--graphite);pointer-events:none}
+  .log{position:fixed;right:var(--gap);top:var(--gap);width:340px;z-index:5;text-align:right;
+    font-size:14px;line-height:1.7;color:var(--graphite);pointer-events:none}
   .log div{opacity:0;animation:in .4s forwards}
   .log div b{color:var(--chalk);font-weight:400}
   @keyframes in{to{opacity:1}}
 
   /* result */
-  .result{position:fixed;right:26px;bottom:120px;width:290px;z-index:6;
-    border-top:1px solid var(--chalk);padding-top:12px;display:none}
+  .result{position:fixed;right:var(--gap);bottom:calc(var(--readout-h) + var(--gap));
+    width:340px;z-index:6;display:none}
   .result.on{display:block;animation:in .5s forwards}
   .result h2{font-family:var(--disp);font-size:34px;letter-spacing:.06em;text-transform:uppercase;
     margin:0 0 6px;line-height:.95}
-  .result p{margin:0;font-size:11px;line-height:1.75;color:var(--chalk)}
-  .result .meta{margin-top:11px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite)}
+  .result p{margin:0;font-size:14px;line-height:1.6;color:var(--chalk)}
+  .result .meta{margin-top:12px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite)}
 
-    .shelf{position:fixed;left:300px;bottom:104px;z-index:6;display:flex;gap:7px;align-items:flex-end}
+  .shelf{position:fixed;left:calc(var(--rail) + var(--gap));bottom:calc(var(--readout-h) + var(--gap));z-index:6;display:flex;gap:7px;align-items:flex-end}
   .shelf button{padding:0;border:1px solid var(--graphite-2);background:none;cursor:pointer;line-height:0}
   .shelf button:hover{border-color:var(--chalk)}
   .shelf img{width:52px;height:66px;object-fit:cover;display:block}
-  .loadbar{position:fixed;left:300px;bottom:76px;z-index:6;width:214px}
-  .loadbar input{width:100%;background:none;border:1px solid var(--graphite-2);color:var(--graphite);
-    font-family:var(--mono);font-size:8.5px;padding:6px 7px;letter-spacing:.04em}
-  .loadbar input:focus{outline:none;border-color:var(--graphite);color:var(--chalk)}
-  .codebar{display:flex;gap:1px;margin-top:10px}
-  .codebar input{flex:1;min-width:0;background:none;border:1px solid var(--graphite-2);
-    color:var(--graphite);font-family:var(--mono);font-size:8.5px;padding:6px 7px;letter-spacing:.04em}
-  .codebar input:focus{outline:none;border-color:var(--graphite);color:var(--chalk)}
-  .codebar button{background:none;border:1px solid var(--graphite-2);color:var(--graphite);
-    font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
-    padding:6px 9px;cursor:pointer}
-  .codebar button:hover{color:var(--chalk);border-color:var(--graphite)}
   .sheet{position:fixed;inset:0;z-index:20;background:rgba(9,7,6,.94);display:none;
     align-items:center;justify-content:center;padding:28px}
   .sheet.on{display:flex}
@@ -138,20 +133,33 @@
     text-transform:uppercase;padding:9px 16px;background:none;border:1px solid var(--graphite-2);
     color:var(--graphite);cursor:pointer;text-decoration:none}
   .sheetrow a:hover,.sheetrow button:hover{color:var(--chalk);border-color:var(--graphite)}
-  .sheetnote{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--graphite-2)}
-  @media (max-width:820px){ .shelf,.loadbar{display:none} }
-  .telemetry{position:fixed;right:26px;bottom:14px;z-index:5;font-size:8.5px;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--graphite-2);text-align:right;pointer-events:none}
-
-  .dev{position:fixed;left:284px;top:0;padding:10px 16px;z-index:5;display:flex;gap:14px;align-items:center;
-    font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite-2)}
-  .dev select{background:var(--brick);color:var(--graphite);border:1px solid var(--graphite-2);
-    font-family:var(--mono);font-size:9px;padding:3px 5px;letter-spacing:.1em}
+  .sheetnote{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--graphite)}
+  @media (max-width:820px){ .shelf{display:none} }
+  .dev{position:fixed;left:calc(var(--rail) + var(--gap));top:var(--gap);z-index:5;
+    display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:10px;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--graphite)}
+  .sel{position:relative}
+  .selbtn{display:flex;align-items:center;gap:16px;min-width:132px;cursor:pointer;border-radius:0;
+    background:rgba(232,226,214,.07);border:1px solid var(--graphite);color:var(--chalk);
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    padding:6px 9px}
+  .selbtn i{display:block;margin-left:auto;width:0;height:0;
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid var(--graphite)}
+  .selbtn[aria-expanded="true"] i{border-top-color:var(--chalk)}
+  .selmenu{position:absolute;left:0;top:calc(100% - 1px);min-width:100%;display:none;z-index:30;
+    background:var(--brick);border:1px solid var(--graphite)}
+  .selmenu.on{display:block}
+  .selmenu button{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+    color:var(--graphite);font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    text-transform:uppercase;padding:7px 9px;white-space:nowrap}
+  .selmenu button:hover{background:rgba(232,226,214,.07);color:var(--chalk)}
+  .selmenu button[aria-selected="true"]{color:var(--chalk)}
 
   @media (max-width:820px){
     .rail{width:100%;height:auto;bottom:auto;flex-direction:column;border-right:0;
       border-bottom:1px solid var(--graphite-2)}
-    .readout{left:0;gap:18px;flex-wrap:wrap}.temp{font-size:36px}
+    .readout{left:0;height:auto;gap:18px;flex-wrap:wrap}.temp{font-size:36px}
     .log,.result,.dev,.telemetry{display:none}
     .act{margin-top:16px}
   }
@@ -162,8 +170,8 @@
 
 <aside class="rail">
   <div class="mark">Unfired <span>/</span> Kiln</div>
-  <div class="sub">Sprint 2 — Turn to look,<br>Shape to work the wall.</div>
 
+  <div class="railscroll">
   <hr>
   <div class="lbl"><span>Form</span><span id="frmname">—</span></div>
   <div class="forms" id="forms"></div>
@@ -172,7 +180,7 @@
   <div class="lbl"><span>Tool</span><span id="toolhint">drag on the pot</span></div>
   <div class="modes three" id="tools"></div>
   <div class="sl"><label>Brush</label><input type="range" id="brush" min="6" max="60" value="20"><output id="brushv">20</output></div>
-  <button class="ghost" id="undo" style="margin-top:6px">Undo</button>
+  <button class="ghost" id="undo" style="margin-top:8px">Undo</button>
 
   <hr>
   <div class="lbl"><span>Surface</span><span id="txname">—</span></div>
@@ -192,27 +200,25 @@
   <hr>
   <div class="lbl"><span>Firing length</span></div>
   <div class="segs" id="durs"></div>
-  <div class="sub" style="margin-top:9px">The kiln keeps running if you<br>leave the tab. Come back for it.</div>
+
+  </div>
 
   <div class="act">
     <button class="big" id="fire">Fire</button>
-    <button class="ghost" id="save" style="display:none">Specimen sheet</button>
+    <button class="ghost" id="save" style="display:none">Download PNG</button>
     <button class="ghost" id="reset" style="display:none">New piece</button>
-    <div class="warn" id="oneway">Firing is one way</div>
   </div>
 </aside>
 
 <div class="dev">
-  <span>force outcome</span>
-  <select id="force">
-    <option value="">roll</option>
-    <option value="clean">clean pull</option>
-    <option value="craze">crazing</option>
-    <option value="run">glaze run</option>
-    <option value="crawl">crawling</option>
-    <option value="pin">pinholing</option>
-    <option value="dunt">dunting</option>
-  </select>
+  <span>Force outcome</span>
+  <div class="sel">
+    <button class="selbtn" id="selbtn" aria-haspopup="listbox" aria-expanded="false">
+      <span id="sellabel">Roll</span><i></i>
+    </button>
+    <div class="selmenu" id="selmenu" role="listbox"></div>
+  </div>
+  <input type="hidden" id="force" value="">
 </div>
 
 <div class="log" id="log"></div>
@@ -221,10 +227,6 @@
   <h2 id="rtitle"></h2>
   <p id="rbody"></p>
   <div class="meta" id="rmeta"></div>
-  <div class="codebar">
-    <input id="codev" readonly>
-    <button id="copycode">Copy</button>
-  </div>
 </div>
 
 <div class="readout">
@@ -234,17 +236,16 @@
   <div class="field"><b id="wallv">—</b><i>Min wall</i></div>
   <div class="field"><b id="riskv">—</b><i>Crack risk</i></div>
   <div class="field"><b id="clockv">00:00</b><i>Elapsed</i></div>
-  <div class="ramp"><b id="rampbar"></b></div>
 </div>
 
 <div class="shelf" id="shelf"></div>
-<div class="loadbar"><input id="loadcode" placeholder="paste a piece code + enter"></div>
 
 <div class="sheet" id="sheet">
   <div class="sheetbox">
     <img id="sheetimg" alt="Specimen sheet">
     <div class="sheetrow">
       <a id="dl" download="unfired.png">Download</a>
+      <a id="open" target="_blank" rel="noopener">Open in new tab</a>
       <button id="copyimg">Copy image</button>
       <button id="closesheet">Close</button>
     </div>
@@ -252,7 +253,6 @@
   </div>
 </div>
 
-<div class="telemetry" id="tele"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -270,6 +270,9 @@ const CLAYS = [
 ];
 
 const GLAZES = [
+  { id:'none',    name:'No glaze', hint:'bare clay, unglazed', bare:1,
+    raw:'#B9A88E', fired:'#B9A88E', pool:'#B9A88E', brk:'#B9A88E',
+    gloss:0.06, speckle:.10, crazeBias:0, crawlBias:0, runBias:0 },
   { id:'tenmoku', name:'Tenmoku', hint:'iron black, rust rim',
     raw:'#8C8378', fired:'#15110C', pool:'#080605', brk:'#A85A22',
     gloss:1.00, speckle:.35, crazeBias:.7, crawlBias:.6, runBias:1.1 },
@@ -307,6 +310,21 @@ const GLAZES = [
     raw:'#CFC6B6', fired:'#52738C', pool:'#22435C', brk:'#C0A070',
     gloss:0.95, speckle:.45, crazeBias:1.2, crawlBias:.7, runBias:1.4 },
 
+  /* metallic and lustre — reflection carries the colour, so these only
+     resolve once fired; raw they go on as dull sludge */
+  { id:'gold',     name:'Gold lustre', hint:'metallic, third firing', metal:1, irid:.18,
+    raw:'#6B5A4A', fired:'#C9A227', pool:'#8A6A12', brk:'#E4C866',
+    gloss:1.00, speckle:.05, crazeBias:.3, crawlBias:.4, runBias:.5 },
+  { id:'gunmetal', name:'Gunmetal', hint:'metallic, iron saturate', metal:1, irid:.10,
+    raw:'#7A736A', fired:'#4E463D', pool:'#2A241E', brk:'#8A7A62',
+    gloss:1.00, speckle:.20, crazeBias:.4, crawlBias:.5, runBias:.8 },
+  { id:'raku',     name:'Raku copper', hint:'metallic, iridescent', metal:1, irid:.95,
+    raw:'#5E6257', fired:'#8A5A3C', pool:'#3A2418', brk:'#C08A5A',
+    gloss:1.00, speckle:.08, crazeBias:.5, crawlBias:.6, runBias:.6 },
+  { id:'pearl',    name:'Pearl lustre', hint:'lustre, iridescent', metal:.62, irid:1.0,
+    raw:'#DAD5CB', fired:'#DCD8D0', pool:'#B4AEA2', brk:'#C8BCA6',
+    gloss:1.00, speckle:.04, crazeBias:.6, crawlBias:.4, runBias:.5 },
+
   /* spray blends — two glazes graded into each other up the wall */
   { id:'ember',   name:'Ember',   hint:'spray blend, cream to red',
     raw:'#E4DACA', fired:'#F1E7D3', fired2:'#C4201B', pool:'#B4531A', brk:'#D9A46A',
@@ -327,11 +345,11 @@ const TEXTURES = [
 ];
 
 const OUTCOMES = {
-  clean:{ w:32, title:'Clean pull',  body:'No faults. The glaze sat where it was put and came out even — the rim broke to clay the way it should, the foot stayed dry.' },
-  craze:{ w:24, title:'Crazing',     body:'A fine crackle network right through the glaze. The glaze shrank more than the clay did on the way down. Cosmetic — some potters spend years chasing it deliberately.' },
-  run:{   w:16, title:'Glaze run',   body:'It moved. Thick and dark down the lower third where it pooled and stopped. Half a millimetre more and it would have welded to the shelf.' },
-  crawl:{ w:12, title:'Crawling',    body:'The glaze pulled back from the clay in patches and beaded up at the edges. Usually dust or oil on the raw pot before dipping.' },
-  pin:{   w:8,  title:'Pinholing',   body:'Small craters across the surface where gas escaped the clay body after the glaze had already sealed over. Cooled too fast at the top end.' },
+  clean:{ w:40, title:'Clean pull',  body:'No faults. The glaze sat where it was put and came out even — the rim broke to clay the way it should, the foot stayed dry.' },
+  craze:{ w:16, title:'Crazing',     body:'A fine crackle network right through the glaze. The glaze shrank more than the clay did on the way down. Cosmetic — some potters spend years chasing it deliberately.' },
+  run:{   w:14, title:'Glaze run',   body:'It moved. Thick and dark down the lower third where it pooled and stopped. Half a millimetre more and it would have welded to the shelf.' },
+  crawl:{ w:10, title:'Crawling',    body:'The glaze pulled back from the clay in patches and beaded up at the edges. Usually dust or oil on the raw pot before dipping.' },
+  pin:{   w:10,  title:'Pinholing',   body:'Small craters across the surface where gas escaped the clay body after the glaze had already sealed over. Cooled too fast at the top end.' },
   dunt:{  w:8,  title:'Dunting',     body:'A cooling crack. It opened at the foot and ran up through the wall as the kiln passed back down through quartz inversion at 573°C.' },
 };
 
@@ -513,7 +531,7 @@ float angWrap(float d){ return atan(sin(d),cos(d)); }
 const VERT = NOISE + `
 uniform float uCrack, uSeed, uYMin, uYMax, uAsym, uTexAmt, uTexMode, uAspect;
 attribute float aThin;
-varying vec3 vPos, vNrm, vWNrm, vWPos;
+varying vec3 vPos, vNrm, vWNrm, vWPos, vBaseN;
 varying float vDisp, vThin;
 
 /* jittered lattice on the (angle, height) surface domain. cu is an integer
@@ -589,21 +607,28 @@ void main(){
   p0 -= n0 * smoothstep(0.16,0.0,cd) * smoothstep(0.92,0.42,yy) * uCrack * 0.045;
 
   vec3 rd = vec3(position.x,0.0,position.z);
-  vDisp = texShape(position) * smoothstep(-0.05,0.30, dot(n0, rd/max(length(rd),1e-4))) * uTexAmt;
+  float outw0 = smoothstep(-0.05,0.30, dot(n0, rd/max(length(rd),1e-4)));
+  /* Only the CREST of a raised feature starves the glaze. texShape is a full
+     0..1 field for rings (a sinusoid over the whole wall), so feeding it in
+     raw made most of the pot read as a raised tip, break to bare clay, and
+     wash every glaze out to pale clay colour. Beads and thorns were fine
+     because their shape field is sparse — rings exposed the flaw. */
+  vDisp = smoothstep(0.62, 1.0, texShape(position)) * outw0 * uTexAmt;
 
   vThin = aThin;
   vPos = p0; vNrm = nn;
   vec4 wp = modelMatrix * vec4(p0,1.0);
   vWPos = wp.xyz;
-  vWNrm = normalize(mat3(modelMatrix) * nn);
+  vWNrm  = normalize(mat3(modelMatrix) * nn);
+  vBaseN = normalize(mat3(modelMatrix) * n0);   // undisplaced, for the rim term
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 
 const FRAG = NOISE + `
 uniform vec3 uRaw,uFired,uFired2,uPool,uBrk,uClay,uHeatCol,uStain;
-uniform float uFire,uHeat,uGloss,uSpeckle,uCraze,uCrawl,uRun,uCrack,uPin,uClaySpeck,uGrad,uTexAmt;
+uniform float uFire,uHeat,uGloss,uSpeckle,uCraze,uCrawl,uRun,uCrack,uPin,uClaySpeck,uGrad,uTexAmt,uBare,uMetal,uIrid;
 uniform float uSeed,uYMin,uYMax,uLight;
-varying vec3 vPos,vNrm,vWNrm,vWPos;
+varying vec3 vPos,vNrm,vWNrm,vWPos,vBaseN;
 varying float vDisp, vThin;
 
 vec2 worley(vec3 p){
@@ -617,9 +642,35 @@ vec2 worley(vec3 p){
   return vec2(f1,f2);
 }
 
+/* Studio environment. The lights are TALL VERTICAL softboxes, which is what
+   makes glazed pots photograph with long vertical highlight bands rather than
+   horizontal ones — a strip light narrow in azimuth and tall in elevation
+   reflects off a surface of revolution as a vertical streak. Keying this only
+   off R.y, as before, could only ever produce horizontal banding. */
+vec3 envCol(vec3 R){
+  float y  = R.y;
+  float az = atan(R.x, R.z);
+
+  // key: broad vertical softbox, front-left
+  float k1 = exp(-pow(angWrap(az - 0.85)/0.50, 2.0)) * exp(-pow((y-0.18)/0.90, 2.0));
+  // fill: narrower, cooler, on the other side
+  float k2 = exp(-pow(angWrap(az + 1.75)/0.34, 2.0)) * exp(-pow((y-0.05)/0.75, 2.0));
+
+  float sky = smoothstep(-0.30, 0.80, y);
+  vec3 c = mix(vec3(0.030,0.026,0.023), vec3(0.15,0.15,0.16), sky);
+  c += vec3(1.00,0.98,0.95)*k1*0.90;
+  c += vec3(0.82,0.86,0.95)*k2*0.32;
+
+  // bounce off the shelf, low on the wall
+  float bounce = smoothstep(-0.85,-0.20,y) * (1.0 - smoothstep(-0.20,0.15,y));
+  c += vec3(0.50,0.46,0.41)*bounce*0.12;
+  return c;
+}
+
 void main(){
   vec3 N = normalize(vWNrm);
-  if(!gl_FrontFacing) N = -N;
+  vec3 NB = normalize(vBaseN);
+  if(!gl_FrontFacing){ N = -N; NB = -NB; }
   vec3 V = normalize(cameraPosition - vWPos);
   float yy = clamp((vPos.y-uYMin)/(uYMax-uYMin),0.,1.);
 
@@ -628,7 +679,7 @@ void main(){
   float flow  = (1.0-yy);
   float ledge = max(0.0, N.y)*0.5 + max(0.0,-N.y)*0.25;
   float thick = clamp(flow*0.60 + ledge*0.40 + (grain-0.5)*0.45
-                    + (1.0-vDisp)*0.16*uTexAmt, 0.0, 1.0);
+                    + (1.0-vDisp)*0.10*uTexAmt, 0.0, 1.0);
 
   /* ---- glaze runs: vertical streaks that travel down and stop in a
      bead. Kept as its own channel — folding it into the thickness field hid it,
@@ -646,7 +697,7 @@ void main(){
   // wall above where it left from.
   float rimBreak = smoothstep(0.955,0.999,yy);
   float thin = clamp(rimBreak + uRun*streak*smoothstep(0.60,0.86,yy)*0.45
-                   + vDisp*vDisp*0.62, 0.0, 1.0);
+                   + vDisp*0.42, 0.0, 1.0);
 
   /* ---- clay body --------------------------------------------------- */
   float claySp = smoothstep(0.66,0.83, fbm(vPos*46.0 + uSeed*2.7));
@@ -669,6 +720,8 @@ void main(){
 
   vec3 base = mix(rawC, fireC, uFire);
   base = mix(base, clayC, max(foot, crawl*uFire));
+  // unglazed: bare clay throughout, a shade lighter once bisqued
+  base = mix(base, clayC*mix(1.0,1.07,uFire), uBare);
 
   // iron speckle through the glaze
   float sp = smoothstep(0.72,0.86, fbm(vPos*38.0+uSeed));
@@ -679,9 +732,13 @@ void main(){
   float craze = smoothstep(0.042,0.004, w.y-w.x) * uCraze;
   base = mix(base, mix(base*0.62, uStain, 0.55), craze*0.88);
 
-  float pinN = smoothstep(0.80,0.93, fbm(vPos*54.0+uSeed*5.0));
-  float pin = pinN*uPin;
-  base = mix(base, base*0.30, pin);
+  /* Craters, not a threshold on fbm — measured, fbm only exceeds 0.80 on
+     0.01% of the surface, so the old test produced nothing at all. Worley F1
+     gives round pits with ~7% coverage, clustered by a low-frequency field. */
+  vec2 wpin = worley(vPos*44.0 + uSeed*9.0);
+  float pinCluster = smoothstep(0.40,0.62, fbm(vPos*6.0 + uSeed*17.0));
+  float pin = smoothstep(0.24,0.06, wpin.x) * pinCluster * uPin;
+  base = mix(base, base*0.20, pin);
 
   float ang = atan(vPos.x, vPos.z);
   float wob = (vnoise(vec3(yy*5.0,uSeed,0.0))-0.5)*1.3;
@@ -695,26 +752,47 @@ void main(){
   vec3 L3 = normalize(vec3(-0.15,0.25,-1.0));
   float d1 = max(dot(N,L1),0.), d2 = max(dot(N,L2),0.), d3 = max(dot(N,L3),0.);
   vec3 diff = vec3(1.0,0.96,0.90)*d1*0.95 + vec3(0.55,0.62,0.75)*d2*0.30;
-  diff += 0.20; // ambient bounce off the shelf
+  diff += 0.26; // ambient bounce off the shelf
 
   float glossy = uGloss*uFire;
   glossy *= (1.0 - craze*0.35 - crawl*uFire*0.8 - crackM*0.9 - pin*0.5);
   glossy = max(glossy, uGloss*uFire*runM*0.85);
+  glossy *= (1.0 - uBare*0.94);
   glossy = max(glossy,0.0);
   vec3 H1 = normalize(L1+V), H3 = normalize(L3+V);
-  float shin = mix(6.0, 78.0, glossy);
-  float spec = pow(max(dot(N,H1),0.), shin)*glossy*1.15
-             + pow(max(dot(N,H3),0.), shin*0.6)*glossy*0.5;
-  float fres = pow(1.0-max(dot(N,V),0.), 4.0);
+  float shin = mix(5.0, 30.0, glossy);
+  float spec = pow(max(dot(N,H1),0.), shin)*glossy*0.55
+             + pow(max(dot(N,H3),0.), shin*0.6)*glossy*0.22;
 
-  vec3 col = base*diff*uLight;
+  /* Wet look. A glaze is a glass layer reflecting the room, so reflect the
+     view vector against a dark kiln environment with a brighter band above.
+     Dark overall, so it reads as sheen and moving highlights rather than the
+     flat white fill the old rim term produced. */
+  vec3 R   = reflect(-V, N);
+  vec3 env = envCol(R);
+  float F  = min(0.045 + 0.90*pow(1.0-max(dot(N,V),0.0), 5.0), 0.35);
+
+  /* thin-film interference: hue walks with viewing angle. This is what makes
+     raku copper and pearl lustre shift colour as the piece turns — geometry,
+     not a noise texture. */
+  float ia = 1.0 - max(dot(N,V),0.0);
+  vec3 irid = 0.5 + 0.5*cos(6.28318*(vec3(0.00,0.33,0.67) + ia*2.2 + R.y*0.7));
+  vec3 tint = mix(base, base*irid*1.9, uIrid);
+
+  vec3 col = base*diff*uLight;                        // clay body under glass
+  col += env * F * glossy * 1.55 * uLight;            // the glass layer
   col += vec3(1.0,0.97,0.93)*spec*uLight;
-  col += mix(vec3(0.10,0.11,0.13), vec3(0.9,0.85,0.8), glossy)*fres*(0.25+0.55*glossy)*uLight;
+
+  /* metal has no diffuse term — its colour arrives entirely in the reflection */
+  vec3 metal = env*tint*(0.50 + 1.3*F)*1.45 + vec3(1.0,0.97,0.93)*spec*tint*0.75;
+  col = mix(col, metal, uMetal*uFire);
+
   col += vec3(0.85,0.55,0.35)*d3*0.10*uLight;
 
   /* thin walls read as backlit while unfired — the risk you can still act on */
-  float warn = vThin*(1.0-uFire);
-  col = mix(col, col*0.50 + vec3(1.0,0.56,0.24)*(0.50+0.62*fres), warn*0.88);
+  /* translucency, not incandescence — this is a readout, not a light source */
+  float warn = min(vThin,0.85)*(1.0-uFire);
+  col = mix(col, col*0.64 + vec3(1.0,0.62,0.30)*0.34, warn*0.70);
 
   /* ---- incandescence in the kiln ---------------------------------- */
   float inner = 0.55 + 0.45*(1.0-yy);
@@ -730,7 +808,8 @@ const uni = {
   uPool:{value:new THREE.Color()}, uBrk:{value:new THREE.Color()},
   uClay:{value:new THREE.Color()}, uHeatCol:{value:new THREE.Color('#FF6A18')},
   uFired2:{value:new THREE.Color()}, uStain:{value:new THREE.Color('#8A3A26')},
-  uClaySpeck:{value:0}, uGrad:{value:0},
+  uClaySpeck:{value:0}, uGrad:{value:0}, uBare:{value:0},
+  uMetal:{value:0}, uIrid:{value:0},
   uAsym:{value:0}, uTexAmt:{value:0.55}, uTexMode:{value:0}, uAspect:{value:0.45},
   uFire:{value:0}, uHeat:{value:0}, uGloss:{value:1}, uSpeckle:{value:.3},
   uCraze:{value:0}, uCrawl:{value:0}, uRun:{value:0}, uCrack:{value:0}, uPin:{value:0},
@@ -899,6 +978,8 @@ function applyGlaze(g){
   uni.uPool.value.set(g.pool); uni.uBrk.value.set(g.brk);
   uni.uFired2.value.set(g.fired2 || g.fired); uni.uGrad.value = g.fired2 ? 1 : 0;
   uni.uGloss.value = g.gloss; uni.uSpeckle.value = g.speckle;
+  uni.uBare.value = g.bare ? 1 : 0;
+  uni.uMetal.value = g.metal || 0; uni.uIrid.value = g.irid || 0;
   [...$('glazes').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===g.id));
   $('gzname').textContent = g.hint;
 }
@@ -1007,6 +1088,8 @@ function rollOutcome(){
   OUTCOMES.dunt.w = riskWeight();
   const forced = $('force').value;
   if(forced) return forced;
+  // an unglazed pot cannot craze, run or crawl — it can only survive or crack
+  if(glaze.bare) return Math.random()*(40+OUTCOMES.dunt.w) < 40 ? 'clean' : 'dunt';
   const bias = { clean:1, craze:glaze.crazeBias, run:glaze.runBias,
                  crawl:glaze.crawlBias, pin:1, dunt:1 };
   const keys = Object.keys(OUTCOMES);
@@ -1047,7 +1130,7 @@ function fireTick(){
   $('conev').textContent = c.cone;
   const secs = Math.floor((performance.now()-t0)/1000);
   $('clockv').textContent = String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
-  $('rampbar').style.width = (p*100)+'%';
+  $('fire').style.setProperty('--p', (p*100).toFixed(1)+'%');
 
   const heat = Math.min(1, Math.max(0,(c.temp-620)/610));
   uni.uHeat.value = heat;
@@ -1082,17 +1165,27 @@ function fireTick(){
 function showResult(restored){
   phase = 'done';
   const o = OUTCOMES[outcome];
+  /* Force the fired state rather than trusting the animation to have landed
+     there. A piece that is out of the kiln is fired, by definition — deriving
+     the look from `outcome` makes it impossible to show a result card over an
+     unfired surface, whatever happened during the ramp. */
+  uni.uFire.value = 1; uni.uHeat.value = 0; uni.uLight.value = 1;
+  uni.uCraze.value = outcome==='craze'?1:0;
+  uni.uPin.value   = outcome==='pin'  ?1:0;
+  uni.uCrack.value = outcome==='dunt' ?1:0;
+  uni.uRun.value   = outcome==='run'  ?1:0;
+  uni.uCrawl.value = outcome==='crawl'?1:0;
+  bg.material.uniforms.uHeat.value = 0;
+  shadow.material.uniforms.uK.value = 1;
   $('rtitle').textContent = o.title;
   $('rbody').textContent = o.body;
   $('rmeta').textContent = restored
     ? `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · from the shelf`
     : `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · cone 6 · ${Math.round(watchMs/1000)}s watched${leftTab?' · left the tab':''}`;
-  $('codev').value = encodeCode();
   $('result').classList.add('on');
   $('fire').style.display='none';
   $('save').style.display='block';
   $('reset').style.display='block';
-  $('oneway').textContent='One firing per piece';
   [...$('glazes').children].forEach(b=>b.disabled=true);
   [...$('clays').children].forEach(b=>b.disabled=true);
   [...$('forms').children].forEach(b=>b.disabled=true);
@@ -1109,7 +1202,7 @@ function finish(){
   shelf.push({ code: encodeCode(), thumb: shoot(190,240,0), t: Date.now() });
   if(shelf.length>10) shelf.shift();
   renderShelf(); saveShelf();
-  try{ location.hash = $('codev').value; }catch(e){}
+  try{ location.hash = encodeCode(); }catch(e){}
 }
 
 $('fire').onclick = ()=>{
@@ -1117,9 +1210,11 @@ $('fire').onclick = ()=>{
   phase='firing'; t0=performance.now(); logged={}; leftTab=false; watchMs=0;
   outcome = rollOutcome();
   uni.uSeed.value = Math.random();
-  $('fire').disabled = true;
+  $('fire').classList.add('firing');
+  $('fire').style.setProperty('--p','0%');
   $('fire').textContent = 'Firing';
   $('gzstate').textContent = 'in the kiln';
+  $('log').innerHTML = '';
   logLine('kiln on — <b>'+glaze.name.toLowerCase()+'</b>, cone 6 oxidation');
 };
 $('reset').onclick = ()=>{
@@ -1129,12 +1224,13 @@ $('reset').onclick = ()=>{
   uni.uSeed.value=Math.random();
   bg.material.uniforms.uHeat.value=0; shadow.material.uniforms.uK.value=1;
   $('result').classList.remove('on');
-  $('fire').style.display='block'; $('fire').disabled=false; $('fire').textContent='Fire';
+  $('fire').style.display='block'; $('fire').textContent='Fire';
+  $('fire').classList.remove('firing'); $('fire').style.setProperty('--p','0%');
   $('save').style.display='none'; $('reset').style.display='none';
-  $('oneway').textContent='Firing is one way';
   $('gzstate').textContent='unfired'; $('log').innerHTML='';
+  logLine('fresh clay. <b>pick Shape to work the wall.</b>');
   $('temp').textContent='20'; $('stagev').textContent='Cold'; $('conev').textContent='—';
-  $('clockv').textContent='00:00'; $('rampbar').style.width='0%';
+  $('clockv').textContent='00:00';
   [...$('glazes').children].forEach(b=>b.disabled=false);
   [...$('clays').children].forEach(b=>b.disabled=false);
   [...$('forms').children].forEach(b=>b.disabled=false);
@@ -1209,24 +1305,66 @@ async function specimenSheet(){
       x.fillStyle='#E8E2D6'; x.font=`500 25px ${DISP}`; x.fillText(val,cols[ci],vy);
     });
   });
-  return C.toDataURL('image/png');
+  return await new Promise((res,rej)=>
+    C.toBlob(b => b ? res(b) : rej(new Error('canvas produced no image')), 'image/png'));
 }
 
+let sheetURL = null, sheetBlob = null;
 $('save').onclick = async ()=>{
   savedPng = true;
-  const url = await specimenSheet();
-  $('sheetimg').src = url;
-  $('dl').href = url;
-  $('dl').download = `unfired-${form.id}-${glaze.id}-${clay.id}-${outcome}.png`;
-  $('copyimg').textContent = 'Copy image';
   $('sheet').classList.add('on');
+  $('sheetnote').textContent = 'Composing four views…';
+  try{
+    const blob = await specimenSheet();
+    if(sheetURL) URL.revokeObjectURL(sheetURL);
+    sheetBlob = blob;
+    sheetURL = URL.createObjectURL(blob);
+    $('sheetimg').src = sheetURL;
+    const name = `unfired-${form.id}-${glaze.id}-${clay.id}-${outcome}.png`;
+    $('dl').href = sheetURL; $('dl').download = name;
+    $('open').href = sheetURL;
+    $('copyimg').textContent = 'Copy image';
+    try{ $('dl').click(); }catch(e){}
+    $('sheetnote').textContent = 'If nothing downloaded, right-click the image and save it';
+  }catch(err){
+    $('sheetnote').textContent = 'Could not compose the sheet: '+err.message;
+  }
 };
+/* force-outcome dropdown */
+const FORCE_OPTS = [['','Roll'],['clean','Clean pull'],['craze','Crazing'],['run','Glaze run'],
+                    ['crawl','Crawling'],['pin','Pinholing'],['dunt','Dunting']];
+function renderForce(){
+  $('selmenu').innerHTML = '';
+  FORCE_OPTS.forEach(([v,label])=>{
+    const b = document.createElement('button');
+    b.textContent = label; b.setAttribute('role','option');
+    b.setAttribute('aria-selected', $('force').value === v);
+    b.onclick = ()=>{
+      $('force').value = v; $('sellabel').textContent = label;
+      $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false');
+      renderForce();
+    };
+    $('selmenu').appendChild(b);
+  });
+}
+$('selbtn').onclick = e=>{
+  e.stopPropagation();
+  const open = $('selmenu').classList.toggle('on');
+  $('selbtn').setAttribute('aria-expanded', open);
+};
+document.addEventListener('click', ()=>{
+  $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false');
+});
+addEventListener('keydown', e=>{ if(e.key==='Escape'){
+  $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false'); }});
+renderForce();
+
 $('closesheet').onclick = ()=> $('sheet').classList.remove('on');
 $('sheet').onclick = e=>{ if(e.target===$('sheet')) $('sheet').classList.remove('on'); };
 $('copyimg').onclick = async ()=>{
   try{
-    const blob = await (await fetch($('sheetimg').src)).blob();
-    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    if(!sheetBlob) throw new Error('no image yet');
+    await navigator.clipboard.write([new ClipboardItem({'image/png':sheetBlob})]);
     $('copyimg').textContent = 'Copied';
   }catch(err){ $('copyimg').textContent = 'Copy blocked'; }
 };
@@ -1265,27 +1403,12 @@ function applyCode(code){
 }
 function setFired(oc){
   outcome = oc;
-  uni.uFire.value=1; uni.uHeat.value=0; uni.uLight.value=1;
-  uni.uCraze.value = oc==='craze'?1:0; uni.uPin.value = oc==='pin'?1:0;
-  uni.uCrack.value = oc==='dunt' ?1:0; uni.uRun.value = oc==='run'?1:0;
-  uni.uCrawl.value = oc==='crawl'?1:0;
-  bg.material.uniforms.uHeat.value=0; shadow.material.uniforms.uK.value=1;
+  $('log').innerHTML = '';
+  logLine('from the shelf — <b>'+glaze.name.toLowerCase()+'</b>, cone 6');
   $('temp').textContent='60'; $('stagev').textContent='Out of the kiln';
-  $('conev').textContent='—'; $('rampbar').style.width='100%';
+  $('conev').textContent='—';
   showResult(true);
 }
-$('copycode').onclick = ()=>{
-  $('codev').select();
-  try{ navigator.clipboard.writeText($('codev').value); }catch(e){ document.execCommand('copy'); }
-  $('copycode').textContent='Copied'; setTimeout(()=>$('copycode').textContent='Copy',1400);
-};
-$('loadcode').onkeydown = e=>{
-  if(e.key!=='Enter') return;
-  const ok = applyCode(e.target.value);
-  e.target.value=''; e.target.placeholder = ok ? 'loaded' : 'that code did not parse';
-  setTimeout(()=>{ $('loadcode').placeholder='paste a piece code and press enter'; },2200);
-};
-
 /* ---------------------------------------------------------------- shelf */
 const shelf = [];
 function renderShelf(){
@@ -1299,12 +1422,12 @@ function renderShelf(){
   });
 }
 async function saveShelf(){
-  try{ if(window.storage) await window.storage.set('kiln:shelf', JSON.stringify(shelf.slice(-10))); }catch(e){}
+  try{ if(window.storage) await window.storage.set('kiln:shelf2', JSON.stringify(shelf.slice(-10))); }catch(e){}
 }
 async function loadShelf(){
   try{
     if(!window.storage) return;
-    const r = await window.storage.get('kiln:shelf');
+    const r = await window.storage.get('kiln:shelf2');
     if(r && r.value){ shelf.push(...JSON.parse(r.value)); renderShelf(); }
   }catch(e){}
 }
@@ -1320,8 +1443,6 @@ function loop(now){
   if(dirty){ updateGeom(pot.geometry); updateWallReadout(); dirty=false; }
   if(!drag && !sculpting && !reduce) az += 0.00022*dt;
   placeCam();
-  $('tele').textContent = phase==='raw' ? 'sprint 1 · reveal test'
-    : `watched ${Math.round(watchMs/1000)}s · tab ${leftTab?'left':'held'}${savedPng?' · saved':''}`;
   renderer.autoClear = false;
   renderer.clear();
   renderer.render(bgScene,bgCam);
