@@ -1264,7 +1264,13 @@ $('fire').onclick = ()=>{
   if(phase!=='raw') return;
   phase='firing'; t0=performance.now(); logged={}; leftTab=false; watchMs=0;
   outcome = rollOutcome();
-  uni.uSeed.value = Math.random();
+  /* Do NOT re-roll uSeed here. It seeds the fault patterns, but the vertex
+     shader also feeds it into the off-round displacement, so re-rolling it
+     remodelled the pot the instant you pressed Fire — at Off-round 100 the
+     silhouette moved by over a thousand pixels. The seed is already fresh per
+     piece (page load and New piece), so faults still differ between pieces,
+     and now the shape that goes into the kiln is the shape you made. Keeping
+     one seed also leaves the 76-byte piece code format untouched. */
   $('fire').classList.add('firing');
   $('fire').style.setProperty('--p','0%');
   $('fire').textContent = 'Firing';
