@@ -15,8 +15,9 @@
     --heat:#FF6A18;
     --ember:#C2340C;
     --rail:300px;
-    --gap:26px;
-    --readout-h:92px;
+    --gap:20px;
+    --readout-h:84px;
+    --toprow-h:20.4px;
     --disp:'Barlow Condensed','Oswald','Arial Narrow',sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
   }
@@ -26,13 +27,16 @@
   canvas{display:block;touch-action:none}
   #stage{position:fixed;inset:0}
 
-  .rail{position:fixed;left:0;top:0;bottom:0;width:var(--rail);padding:22px 20px;overflow:hidden;
+  .rail{position:fixed;left:0;top:0;bottom:0;width:var(--rail);padding:20px;overflow:hidden;
     display:flex;flex-direction:column;gap:0;z-index:5;
     background:linear-gradient(90deg,rgba(23,19,15,.94),rgba(23,19,15,.55));
     border-right:1px solid var(--graphite-2)}
-  .mark{font-family:var(--disp);font-size:13px;letter-spacing:.34em;text-transform:uppercase;
+  .brand{display:flex;align-items:baseline;gap:9px}
+  .mark{font-family:var(--disp);font-size:19px;letter-spacing:4.42px;text-transform:uppercase;
     color:var(--chalk);line-height:1}
-  .mark span{color:var(--graphite)}
+  .byline{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--graphite);
+    text-decoration:none;line-height:1}
+  .byline:hover{color:var(--chalk)}
   .sub{font-size:10px;letter-spacing:.16em;color:var(--graphite);text-transform:uppercase;
     margin-top:7px;line-height:1.6}
   hr{border:0;border-top:1px solid var(--graphite-2);margin:16px 0 12px}
@@ -43,7 +47,7 @@
   .gz{display:flex;align-items:center;gap:7px;padding:6px 6px;cursor:pointer;
     background:none;border:1px solid transparent;color:var(--chalk);width:100%;text-align:left;
     font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
-  .gz:hover{background:rgba(232,226,214,.05)}
+  .gz:not(:disabled):hover{background:rgba(232,226,214,.05)}
   .gz[aria-pressed="true"]{border-color:var(--graphite);background:rgba(232,226,214,.07)}
   .gz:disabled{opacity:.3;cursor:default}
   .chip{width:13px;height:13px;flex:0 0 13px;border:1px solid rgba(0,0,0,.4)}
@@ -66,7 +70,7 @@
   .clays{display:flex;gap:1px}
   .cl{flex:1;padding:6px 0;cursor:pointer;background:none;border:1px solid transparent;
     display:flex;justify-content:center}
-  .cl:hover{background:rgba(232,226,214,.05)}
+  .cl:not(:disabled):hover{background:rgba(232,226,214,.05)}
   .cl[aria-pressed="true"]{border-color:var(--graphite);background:rgba(232,226,214,.07)}
   .cl:disabled{opacity:.3;cursor:default}
   .cl span{width:19px;height:19px;display:block;border:1px solid rgba(0,0,0,.4)}
@@ -78,7 +82,7 @@
   .seg:disabled{opacity:.35;cursor:default}
 
   .railscroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
-  .act{margin-top:14px;padding-top:14px;border-top:1px solid var(--graphite-2);display:flex;flex-direction:column;gap:8px}
+  .act{padding-top:14px;border-top:1px solid var(--graphite-2);display:flex;flex-direction:column;gap:8px}
   button.big{font-family:var(--disp);font-size:19px;letter-spacing:.3em;text-transform:uppercase;
     padding:15px 0;background:var(--ember);color:#fff;border:0;cursor:pointer;transition:background .15s}
   button.big:hover{background:var(--heat)}
@@ -87,13 +91,21 @@
   button.big.firing:hover{background:linear-gradient(90deg,
     var(--heat) 0 var(--p,0%), var(--brick-2) var(--p,0%) 100%)}
   button.ghost{width:100%;display:block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
-    text-transform:uppercase;padding:10px 0;background:none;border:1px solid var(--graphite-2);
-    color:var(--graphite);cursor:pointer}
-  button.ghost:hover{color:var(--chalk);border-color:var(--graphite)}
+    text-transform:uppercase;padding:10px 0;background:none;border:1px solid var(--graphite);
+    color:var(--chalk);cursor:pointer}
+  button.ghost:not(:disabled):hover{
+    background:linear-gradient(rgba(232,226,214,.12),rgba(232,226,214,.12))}
+  /* Undo is the only ghost that ever gets disabled. It had no disabled rule and
+     used to hide that behind dim graphite text; now that it rests bright it has to
+     dim like every other locked control in the rail. */
+  button.ghost:disabled{opacity:.3;cursor:default}
+  .act button.ghost{background:var(--graphite-2);border-color:var(--graphite-2)}
+  .act button.ghost:not(:disabled):hover{
+    background:linear-gradient(rgba(232,226,214,.12),rgba(232,226,214,.12)),var(--graphite-2)}
 
   /* kiln readout */
   .readout{position:fixed;left:var(--rail);right:0;bottom:0;height:var(--readout-h);
-    padding:22px 20px;z-index:5;
+    padding:20px;z-index:5;
     border-top:1px solid var(--graphite-2);background:linear-gradient(0deg,rgba(23,19,15,.95),rgba(23,19,15,0));
     display:flex;align-items:flex-end;gap:34px;pointer-events:none}
   .temp{font-family:var(--disp);font-size:52px;line-height:.82;letter-spacing:-.01em;
@@ -105,7 +117,7 @@
 
   /* log */
   .log{position:fixed;right:var(--gap);top:var(--gap);width:340px;z-index:5;text-align:right;
-    font-size:14px;line-height:1.7;color:var(--graphite);pointer-events:none}
+    font-size:12px;line-height:var(--toprow-h);color:var(--graphite);pointer-events:none}
   .log div{opacity:0;animation:in .4s forwards}
   .log div b{color:var(--chalk);font-weight:400}
   @keyframes in{to{opacity:1}}
@@ -116,7 +128,7 @@
   .result.on{display:block;animation:in .5s forwards}
   .result h2{font-family:var(--disp);font-size:34px;letter-spacing:.06em;text-transform:uppercase;
     margin:0 0 6px;line-height:.95}
-  .result p{margin:0;font-size:14px;line-height:1.6;color:var(--chalk)}
+  .result p{margin:0;font-size:12px;line-height:normal;color:var(--chalk)}
   .result .meta{margin-top:12px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--graphite)}
 
   .shelf{position:fixed;left:calc(var(--rail) + var(--gap));bottom:calc(var(--readout-h) + var(--gap));z-index:6;display:flex;gap:7px;align-items:flex-end}
@@ -135,26 +147,13 @@
   .sheetrow a:hover,.sheetrow button:hover{color:var(--chalk);border-color:var(--graphite)}
   .sheetnote{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--graphite)}
   @media (max-width:820px){ .shelf{display:none} }
-  .dev{position:fixed;left:calc(var(--rail) + var(--gap));top:var(--gap);z-index:5;
-    display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:10px;
-    letter-spacing:.24em;text-transform:uppercase;color:var(--graphite)}
-  .sel{position:relative}
-  .selbtn{display:flex;align-items:center;gap:16px;min-width:132px;cursor:pointer;border-radius:0;
-    background:rgba(232,226,214,.07);border:1px solid var(--graphite);color:var(--chalk);
-    font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
-    padding:6px 9px}
-  .selbtn i{display:block;margin-left:auto;width:0;height:0;
-    border-left:4px solid transparent;border-right:4px solid transparent;
-    border-top:5px solid var(--graphite)}
-  .selbtn[aria-expanded="true"] i{border-top-color:var(--chalk)}
-  .selmenu{position:absolute;left:0;top:calc(100% - 1px);min-width:100%;display:none;z-index:30;
-    background:var(--brick);border:1px solid var(--graphite)}
-  .selmenu.on{display:block}
-  .selmenu button{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
-    color:var(--graphite);font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-    text-transform:uppercase;padding:7px 9px;white-space:nowrap}
-  .selmenu button:hover{background:rgba(232,226,214,.07);color:var(--chalk)}
-  .selmenu button[aria-selected="true"]{color:var(--chalk)}
+  /* top-left canvas descriptor: the recipe of the build currently on the wheel */
+  .recipe{position:fixed;left:calc(var(--rail) + var(--gap));top:var(--gap);z-index:5;
+    height:var(--toprow-h);display:flex;align-items:center;
+    color:var(--graphite);font-family:var(--mono);font-size:10px;font-style:normal;
+    font-weight:400;line-height:normal;letter-spacing:1.8px;text-transform:uppercase;
+    pointer-events:none}
+  /* forced outcome reuses .forms — same 2-column grid and .gz chrome as Form */
 
   @media (max-width:820px){
     /* A bounded height, not height:auto. .railscroll is flex:1;min-height:0,
@@ -164,11 +163,10 @@
     .rail{width:100%;height:62vh;bottom:auto;flex-direction:column;border-right:0;
       border-bottom:1px solid var(--graphite-2)}
     .readout{left:0;height:auto;gap:18px;flex-wrap:wrap}.temp{font-size:36px}
-    .log,.dev{display:none}
+    .log,.recipe{display:none}
     /* .result alone loses to .result.on (0,1,0 vs 0,2,0), so the card stayed
        visible over the rail on narrow screens. Match the specificity. */
     .result,.result.on{display:none}
-    .act{margin-top:16px}
   }
   @media (prefers-reduced-motion:reduce){.log div{animation:none;opacity:1}}
 </style>
@@ -176,7 +174,10 @@
 <div id="stage"></div>
 
 <aside class="rail">
-  <div class="mark">Unfired <span>/</span> Kiln</div>
+  <div class="brand">
+    <div class="mark">Kiln</div>
+    <a class="byline" href="https://t.me/Rudishch" target="_blank" rel="noopener">by @rudishch</a>
+  </div>
 
   <div class="railscroll">
   <hr>
@@ -200,9 +201,13 @@
   <div class="clays" id="clays"></div>
 
   <hr>
-  <div class="lbl"><span>Raw glaze</span><span id="gzstate">unfired</span></div>
+  <div class="lbl"><span>Raw glaze</span><span id="gzsel">—</span></div>
   <div class="glazes" id="glazes"></div>
   <div class="sub" id="gzname" style="margin-top:8px"></div>
+
+  <hr>
+  <div class="lbl"><span>Forced outcome</span><span id="fcname">—</span></div>
+  <div class="forms" id="forces"></div>
 
   <hr>
   <div class="lbl"><span>Firing length</span></div>
@@ -213,27 +218,18 @@
   <div class="act">
     <button class="big" id="fire">Fire</button>
     <button class="ghost" id="save" style="display:none">Download PNG</button>
-    <button class="ghost" id="reset" style="display:none">New piece</button>
+    <button class="ghost" id="reset" style="display:none">Make new piece</button>
   </div>
 </aside>
 
-<div class="dev">
-  <span>Force outcome</span>
-  <div class="sel">
-    <button class="selbtn" id="selbtn" aria-haspopup="listbox" aria-expanded="false">
-      <span id="sellabel">Roll</span><i></i>
-    </button>
-    <div class="selmenu" id="selmenu" role="listbox"></div>
-  </div>
-  <input type="hidden" id="force" value="">
-</div>
+<div class="recipe" id="recipe"></div>
+<input type="hidden" id="force" value="">
 
 <div class="log" id="log"></div>
 
 <div class="result" id="result">
   <h2 id="rtitle"></h2>
   <p id="rbody"></p>
-  <div class="meta" id="rmeta"></div>
 </div>
 
 <div class="readout">
@@ -345,7 +341,7 @@ const GLAZES = [
 ];
 
 const TEXTURES = [
-  { id:'plain',  name:'Plain',  mode:0 },
+  { id:'plain',  name:'Smooth', mode:0 },
   { id:'rings',  name:'Rings',  mode:1 },
   { id:'beads',  name:'Beads',  mode:2 },
   { id:'thorns', name:'Thorns', mode:3 },
@@ -996,6 +992,17 @@ el0.addEventListener('pointermove', e=>{
 el0.addEventListener('wheel', e=>{ e.preventDefault();
   dist = Math.max(3.6, Math.min(11, dist + e.deltaY*0.004)); }, {passive:false});
 
+/* The rail is a fixed overlay on top of a full-viewport canvas, so a piece centred
+   on the page sits left of centre in the area you can actually see. Nudge the
+   frustum rather than moving the model: setViewOffset works in pixels, so the shift
+   stays exactly 20px at any zoom or aspect, where a world-space offset would drift
+   with camera distance. Must be cleared for offscreen shots or exports come out
+   cropped and off-centre. */
+const PIECE_DX = 20;
+function applyViewOffset(){
+  camera.setViewOffset(innerWidth, innerHeight, -PIECE_DX, 0, innerWidth, innerHeight);
+}
+
 function placeCam(){
   camera.position.set(
     target.x + dist*Math.cos(el)*Math.sin(az),
@@ -1019,13 +1026,16 @@ function applyGlaze(g){
   uni.uBare.value = g.bare ? 1 : 0;
   uni.uMetal.value = g.metal || 0; uni.uIrid.value = g.irid || 0;
   [...$('glazes').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===g.id));
+  $('gzsel').textContent = g.name;
   $('gzname').textContent = g.hint;
+  updateRecipe();
 }
 function applyTex(t){
   tex = t; uni.uTexMode.value = t.mode;
   [...$('modes').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===t.id));
-  $('txname').textContent = t.mode ? t.name.toLowerCase() : 'smooth';
+  $('txname').textContent = t.name.toLowerCase();
   $('amt').disabled = !t.mode;
+  updateRecipe();
 }
 function applyForm(f){
   form = f;
@@ -1042,6 +1052,7 @@ function applyForm(f){
   [...$('forms').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===f.id));
   $('frmname').textContent = f.name;
   updateWallReadout();
+  updateRecipe();
 }
 function updateWallReadout(){
   const mm = minWallMM(), p = riskWeight();
@@ -1055,7 +1066,15 @@ function applyClay(c){
   uni.uClay.value.set(c.col); uni.uClaySpeck.value = c.speck;
   [...$('clays').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.id===c.id));
   $('clname').textContent = c.name;
+  updateRecipe();
 }
+/* Top-left descriptor: "<FORM> WITH <SURFACE> · <GLAZE> ON <CLAY BODY>". */
+function updateRecipe(){
+  const surface = tex.mode ? ` with ${tex.name}` : '';
+  $('recipe').textContent =
+    `${form.name}${surface} · ${glaze.name} on ${clay.name}`;
+}
+
 const TOOLHINT = { turn:'drag to turn it', shape:'drag on the wall', smooth:'drag to even it' };
 function setTool(id){
   tool = id;
@@ -1217,9 +1236,6 @@ function showResult(restored){
   shadow.material.uniforms.uK.value = 1;
   $('rtitle').textContent = o.title;
   $('rbody').textContent = o.body;
-  $('rmeta').textContent = restored
-    ? `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · from the shelf`
-    : `${form.name.toLowerCase()} · ${glaze.name} on ${clay.name.toLowerCase()} · cone 6 · ${Math.round(watchMs/1000)}s watched${leftTab?' · left the tab':''}`;
   $('result').classList.add('on');
   $('fire').style.display='none';
   $('save').style.display='block';
@@ -1233,6 +1249,7 @@ function showResult(restored){
   [...$('tools').children].forEach(b=>b.disabled=true);
   $('brush').disabled=true; $('undo').disabled=true;
   [...$('durs').children].forEach(b=>b.disabled=true);
+  [...$('forces').children].forEach(b=>b.disabled=true);
 }
 function finish(){
   logLine('<b>out of the kiln</b>');
@@ -1251,7 +1268,6 @@ $('fire').onclick = ()=>{
   $('fire').classList.add('firing');
   $('fire').style.setProperty('--p','0%');
   $('fire').textContent = 'Firing';
-  $('gzstate').textContent = 'in the kiln';
   $('log').innerHTML = '';
   logLine('kiln on — <b>'+glaze.name.toLowerCase()+'</b>, cone 6 oxidation');
 };
@@ -1271,7 +1287,7 @@ $('reset').onclick = ()=>{
   $('fire').style.display='block'; $('fire').textContent='Fire';
   $('fire').classList.remove('firing'); $('fire').style.setProperty('--p','0%');
   $('save').style.display='none'; $('reset').style.display='none';
-  $('gzstate').textContent='unfired'; $('log').innerHTML='';
+  $('log').innerHTML='';
   logLine('fresh clay. <b>pick Shape to work the wall.</b>');
   $('temp').textContent='20'; $('stagev').textContent='Cold'; $('conev').textContent='—';
   $('clockv').textContent='00:00';
@@ -1284,6 +1300,7 @@ $('reset').onclick = ()=>{
   $('undo').disabled=false; setTool('turn');
   applyForm(form);
   [...$('durs').children].forEach(b=>b.disabled=false);
+  [...$('forces').children].forEach(b=>b.disabled=false);
 };
 /* ---------------------------------------------------------------- export
    Render offscreen at a fixed size rather than grabbing the viewport, so the
@@ -1292,14 +1309,14 @@ function shoot(w,h,azOff,elev){
   const sz = new THREE.Vector2(); renderer.getSize(sz);
   const pr = renderer.getPixelRatio(), oAz = az, oEl = el;
   renderer.setPixelRatio(1); renderer.setSize(w,h,false);
-  camera.aspect = w/h; camera.updateProjectionMatrix();
+  camera.aspect = w/h; camera.clearViewOffset(); camera.updateProjectionMatrix();
   az = oAz + azOff; el = (elev===undefined) ? 0.12 : elev; placeCam();
   renderer.autoClear = false; renderer.clear();
   renderer.render(bgScene,bgCam); renderer.render(scene,camera);
   const url = renderer.domElement.toDataURL('image/png');
   az = oAz; el = oEl;
   renderer.setPixelRatio(pr); renderer.setSize(sz.x, sz.y, false);
-  camera.aspect = sz.x/sz.y; camera.updateProjectionMatrix(); placeCam();
+  camera.aspect = sz.x/sz.y; applyViewOffset(); camera.updateProjectionMatrix(); placeCam();
   return url;
 }
 const load1 = u => new Promise(r=>{ const i=new Image(); i.onload=()=>r(i); i.src=u; });
@@ -1372,33 +1389,25 @@ $('save').onclick = async ()=>{
     $('sheetnote').textContent = 'Could not compose the sheet: '+err.message;
   }
 };
-/* force-outcome dropdown */
-const FORCE_OPTS = [['','Roll'],['clean','Clean pull'],['craze','Crazing'],['run','Glaze run'],
-                    ['crawl','Crawling'],['pin','Pinholing'],['dunt','Dunting']];
+/* forced outcome: single-select chip grid in the rail. Laid out row-major, so the
+   two columns read Random|Crawling, Clean pull|Pinholing, Crazing|Dunting, Glaze run.
+   The hidden #force input is still the single source of truth rollOutcome() reads. */
+const FORCE_OPTS = [['','Random'],['crawl','Crawling'],
+                    ['clean','Clean pull'],['pin','Pinholing'],
+                    ['craze','Crazing'],['dunt','Dunting'],
+                    ['run','Glaze run']];
 function renderForce(){
-  $('selmenu').innerHTML = '';
+  $('forces').innerHTML = '';
   FORCE_OPTS.forEach(([v,label])=>{
     const b = document.createElement('button');
-    b.textContent = label; b.setAttribute('role','option');
-    b.setAttribute('aria-selected', $('force').value === v);
-    b.onclick = ()=>{
-      $('force').value = v; $('sellabel').textContent = label;
-      $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false');
-      renderForce();
-    };
-    $('selmenu').appendChild(b);
+    b.className = 'gz'; b.textContent = label; b.dataset.v = v;
+    b.setAttribute('aria-pressed', $('force').value === v);
+    b.onclick = ()=>{ if(phase!=='raw') return; $('force').value = v; renderForce(); };
+    $('forces').appendChild(b);
   });
+  const sel = FORCE_OPTS.find(([v])=>v === $('force').value);
+  $('fcname').textContent = sel ? sel[1] : '—';
 }
-$('selbtn').onclick = e=>{
-  e.stopPropagation();
-  const open = $('selmenu').classList.toggle('on');
-  $('selbtn').setAttribute('aria-expanded', open);
-};
-document.addEventListener('click', ()=>{
-  $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false');
-});
-addEventListener('keydown', e=>{ if(e.key==='Escape'){
-  $('selmenu').classList.remove('on'); $('selbtn').setAttribute('aria-expanded','false'); }});
 renderForce();
 
 $('closesheet').onclick = ()=> $('sheet').classList.remove('on');
@@ -1503,10 +1512,11 @@ function loop(now){
   renderer.render(scene,camera);
 }
 addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  camera.aspect = innerWidth/innerHeight; applyViewOffset(); camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 });
 logLine('fresh clay. <b>pick Shape to work the wall.</b>');
+applyViewOffset();
 loadShelf();
 if(location.hash.length > 40) applyCode(location.hash.slice(1));
 requestAnimationFrame(loop);
